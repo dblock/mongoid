@@ -32,7 +32,7 @@ describe Mongoid::Attributes do
     context "when the document is an existing record" do
 
       let(:person) do
-        Person.create
+        Person.create(:ssn => "123-11-4412")
       end
 
       context "when the attribute does not exist" do
@@ -48,7 +48,6 @@ describe Mongoid::Attributes do
           end
 
           it "returns the default value" do
-            Person.find(person.id)[:age].should == 100
             found[:age].should == 100
           end
         end
@@ -56,7 +55,9 @@ describe Mongoid::Attributes do
         context "when reloaded" do
 
           before do
+            Mongoid.raise_not_found_error = false
             person.reload
+            Mongoid.raise_not_found_error = true
           end
 
           it "returns the default value" do
@@ -404,14 +405,14 @@ describe Mongoid::Attributes do
         context "when attribute is a string" do
 
           it "adds the string to the attributes" do
-            person.attributes[:nofieldstring].should == "Testing"
+            person.attributes["nofieldstring"].should == "Testing"
           end
         end
 
         context "when attribute is not a string" do
 
           it "adds a cast value to the attributes" do
-            person.attributes[:nofieldint].should == 5
+            person.attributes["nofieldint"].should == 5
           end
         end
       end
@@ -465,19 +466,19 @@ describe Mongoid::Attributes do
       end
 
       it "casts integers" do
-        person.attributes[:age].should == 30
+        person[:age].should == 30
       end
 
       it "casts booleans" do
-        person.attributes[:terms].should == true
+        person[:terms].should == true
       end
 
       it "casts ids" do
-        person.attributes[:_id].should == bson_id
+        person[:_id].should == bson_id
       end
 
       it "sets empty strings to nil" do
-        person.attributes[:score].should be_nil
+        person[:score].should be_nil
       end
     end
 
@@ -630,7 +631,9 @@ describe Mongoid::Attributes do
 
         before do
           person.collection.update({:_id => person.id}, {'$unset' => {:age => 1}})
+          Mongoid.raise_not_found_error = false
           person.reload
+          Mongoid.raise_not_found_error = true
         end
 
         it "returns the default value" do
@@ -675,13 +678,49 @@ describe Mongoid::Attributes do
 
         before do
           person.collection.update({:_id => person.id}, {'$unset' => {:age => 1}})
+          Mongoid.raise_not_found_error = false
           person.reload
+          Mongoid.raise_not_found_error = true
         end
 
         it "returns true" do
           person.attribute_present?(:age).should be_true
         end
       end
+    end
+
+    context "when the value is boolean" do
+      let(:person) do
+        Person.new
+      end
+
+      context "when attribute does not exist" do
+        context "when the value is true" do
+
+          it "return true"  do
+            person.terms = false
+            person.attribute_present?(:terms).should be_true
+          end
+        end
+
+        context "when the value is false" do
+          it "return true"  do
+            person.terms = false
+            person.attribute_present?(:terms).should be_true
+          end
+        end
+      end
+    end
+
+    context "when the value is blank string" do
+      let(:person) do
+        Person.new(:title => '')
+      end
+
+      it "return false" do
+        person.attribute_present?(:title).should be_false
+      end
+
     end
   end
 
@@ -749,10 +788,14 @@ describe Mongoid::Attributes do
 
     context "when the key has been specified as a field" do
 
-      before { person.stubs(:fields).returns({"age" => Integer}) }
+      before do
+        person.stubs(:fields).returns(
+          { "age" => Mongoid::Fields::Serializable::Integer.new(:age) }
+        )
+      end
 
       it "retuns the typed value" do
-        person.fields["age"].expects(:set).with("51")
+        person.fields["age"].expects(:serialize).with("51")
         person.send(:typed_value_for, "age", "51")
       end
 
@@ -775,34 +818,59 @@ describe Mongoid::Attributes do
     let(:person) { Person.new }
 
     it "typecasts proc values" do
-      person.stubs(:defaults).returns("age" => lambda { "51" })
-      person.expects(:typed_value_for).with("age", "51")
-      person.instance_variable_set(:@attributes, {})
-      person.send(:apply_default_attributes)
+      person.age.should eq(100)
     end
-
   end
 
   [:attributes=, :write_attributes].each do |method|
     describe "##{method}" do
 
-      context "typecasting" do
+      context "when nested" do
+
+        let(:person) do
+          Person.new
+        end
 
         before do
-          @person = Person.new
-          @attributes = { :age => "50" }
+          person.send(method, { :videos => [{:title => "Fight Club"}] })
         end
 
-        it "properly casts values" do
-          @person.send(method, @attributes)
-          @person.age.should == 50
+        it "should set nested documents" do
+          person.videos.first.title.should eq("Fight Club")
+        end
+      end
+
+      context "typecasting" do
+
+        let(:person) do
+          Person.new
         end
 
-        it "allows passing of nil" do
-          @person.send(method, nil)
-          @person.age.should == 100
+        let(:attributes) do
+          { :age => "50" }
         end
 
+        context "when passing a hash" do
+
+          before do
+            person.send(method, attributes)
+          end
+
+          it "properly casts values" do
+            person.age.should eq(50)
+          end
+        end
+
+        context "when passing nil" do
+
+          before do
+            person.send(method, nil)
+          end
+
+          it "does not set anything" do
+            person.age.should eq(100)
+          end
+        end
       end
 
       context "on a parent document" do
@@ -840,7 +908,6 @@ describe Mongoid::Attributes do
             @name.attributes.should ==
               { "_id" => "test-user", "first_name" => "Test2", "last_name" => "User2" }
           end
-
         end
 
         context "when child is part of a has many" do
@@ -856,12 +923,35 @@ describe Mongoid::Attributes do
             @address.attributes.should ==
               { "_id" => "test", "street" => "Test2" }
           end
-
         end
-
       end
     end
-
   end
 
+  pending "#alias_attribute" do
+
+    let(:klass) do
+      class AliasAttributeTestClass
+        include Mongoid::Document
+        field :name, :type => String
+        alias_attribute :title, :name
+      end
+      AliasAttributeTestClass.new
+    end
+
+    it "sets and accesses :name fine" do
+      klass.name = "baseline"
+      klass.name.should == "baseline"
+    end
+
+    it "aliases :name value as :title" do
+      klass.name = "a value"
+      klass.title.should == "a value"
+    end
+
+    it "aliases :name= as :title=" do
+      klass.title = "a title value"
+      klass.name.should == "a title value"
+    end
+  end
 end

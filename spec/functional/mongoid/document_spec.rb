@@ -185,7 +185,7 @@ describe Mongoid::Document do
       else
         person.id.should be_a_kind_of(String)
       end
-      person.attributes[:title].should == "Test"
+      person[:title].should == "Test"
     end
 
     context "when creating a has many" do
@@ -256,7 +256,7 @@ describe Mongoid::Document do
         @person.addresses.first.destroy
         @person.name.should_not be_nil
         @person.name.destroy
-        @person.addresses.first.should be_nil
+        @person.addresses.should be_empty
         @person.name.should be_nil
       end
     end
@@ -359,6 +359,22 @@ describe Mongoid::Document do
       person.reload.should == from_db
     end
 
+    context "when an after initialize callback is defined" do
+
+      let!(:book) do
+        Book.create(:title => "Snow Crash")
+      end
+
+      before do
+        book.update_attribute(:chapters, 50)
+        book.reload
+      end
+
+      it "runs the callback" do
+        book.chapters.should eq(5)
+      end
+    end
+
     context "when the document was dirty" do
 
       let(:person) do
@@ -418,7 +434,7 @@ describe Mongoid::Document do
           person.reload
         end
 
-        it "should reload the association" do
+        it "reloads the association" do
           person.game.score.should == 75
         end
       end
@@ -436,7 +452,7 @@ describe Mongoid::Document do
           game.reload
         end
 
-        it "should reload the association" do
+        it "reloads the association" do
           game.person.title.should == "Mam"
         end
       end
@@ -698,50 +714,50 @@ describe Mongoid::Document do
       Event.collection.drop
       User.collection.drop
     end
-    
+
     context "called on a reference_many object" do
       before do
-        {'My birthday' => Date.new(1981, 2, 1), 'My cat`s birthday' => Date.new(1981, 2, 1), 
+        {'My birthday' => Date.new(1981, 2, 1), 'My cat`s birthday' => Date.new(1981, 2, 1),
          'My pidgeon`s birthday' => Date.new(1981, 2, 2) }.each do |title, date|
           event = Event.new(:title => title, :date => date)
           event.owner = @owner
-          event.save
-        end                
+          event.save!
+        end
       end
-      
+
       let(:events) do
         rounds = []
         @owner.events.each_day(Date.new(1981, 1, 2), Date.new(1981, 2, 2)) do |date, collection|
           rounds << {:date => date, :collection => collection}
         end
-        rounds
-      end            
-    
+        rounds.sort_by { |round| round[:date] }
+      end
+
       it "should pass the block" do
         events.length.should == 2
         events.first[:collection].length.should == 2
         events.last[:collection].length.should == 1
       end
     end
-    
+
     context "called on an embeds_many object" do
       before do
-        {'My birthday' => Date.new(1981, 2, 1), 'My cat`s birthday' => Date.new(1981, 2, 1), 
+        {'My birthday' => Date.new(1981, 2, 1), 'My cat`s birthday' => Date.new(1981, 2, 1),
          'My pidgeon`s birthday' => Date.new(1981, 2, 2) }.each do |title, date|
           birthday = Birthday.new(:title => title, :date => date)
           birthday.owner = @owner
-          birthday.save
-        end                
+          birthday.save!
+        end
       end
-      
+
       let(:birthdays) do
         rounds = []
         @owner.birthdays.each_day(Date.new(1981, 1, 2), Date.new(1981, 2, 2)) do |date, collection|
           rounds << {:date => date, :collection => collection}
         end
-        rounds
-      end            
-    
+        rounds.sort_by { |round| round[:date] }
+      end
+
       it "should pass the block" do
         birthdays.length.should == 2
         birthdays.first[:collection].length.should == 2

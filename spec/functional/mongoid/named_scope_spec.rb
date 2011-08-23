@@ -25,6 +25,17 @@ describe Mongoid::NamedScope do
       Person.delete_all
     end
 
+    context "when accessing an any_of scope first" do
+
+      let(:criteria) do
+        Person.search("Dr.").old
+      end
+
+      it "returns the correct results" do
+        criteria.should eq([ document ])
+      end
+    end
+
     context "accessing a single named scope" do
 
       it "returns the document" do
@@ -60,12 +71,12 @@ describe Mongoid::NamedScope do
       end
     end
 
-    context "when an inheritable class hash is defined" do
-      
+    context "when an class attribute is defined" do
+
       it "should be accessible" do
         Person.somebody_elses_important_class_options.should == { :keep_me_around => true }
       end
-      
+
     end
 
     context "when calling scopes on parent classes" do
@@ -73,11 +84,11 @@ describe Mongoid::NamedScope do
       it "inherits the scope" do
         Doctor.minor.should == []
       end
-      
-      it "inherits the inheritable class methods" do
+
+      it "inherits the class attribute methods" do
         Doctor.somebody_elses_important_class_options.should == { :keep_me_around => true }
       end
-      
+
     end
   end
 end

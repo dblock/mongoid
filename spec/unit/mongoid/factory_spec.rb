@@ -14,6 +14,16 @@ describe Mongoid::Factory do
         person = Mongoid::Factory.build(Person, @attributes)
         person.title.should == "Sir"
       end
+
+      it "does not instantiate classes other than the given or its subclasses" do
+        person = Mongoid::Factory.build(Person, { "_type" => "Canvas" })
+        person.class.should == Person
+      end
+
+      it "does instantiate subclasses of the given class" do
+        person = Mongoid::Factory.build(Person, { "_type" => "Doctor" })
+        person.class.should == Doctor
+      end
     end
 
     context "when _type is not preset" do
@@ -37,6 +47,69 @@ describe Mongoid::Factory do
       it "instantiates based on the type" do
         person = Mongoid::Factory.build(Person, @attributes)
         person.title.should == "Sir"
+      end
+    end
+  end
+
+  describe ".from_db" do
+
+    context "when a type is in the attributes" do
+
+      context "when the type is a class" do
+
+        let(:attributes) do
+          { "_type" => "Person", "title" => "Sir" }
+        end
+
+        let(:document) do
+          described_class.from_db(Address, attributes)
+        end
+
+        it "generates based on the type" do
+          document.should be_a(Person)
+        end
+
+        it "sets the attributes" do
+          document.title.should == "Sir"
+        end
+      end
+
+      context "when the type is empty" do
+
+        let(:attributes) do
+          { "_type" => "", "title" => "Sir" }
+        end
+
+        let(:document) do
+          described_class.from_db(Person, attributes)
+        end
+
+        it "generates based on the provided class" do
+          document.should be_a(Person)
+        end
+
+        it "sets the attributes" do
+          document.title.should == "Sir"
+        end
+      end
+    end
+
+    context "when a type is not in the attributes" do
+
+      let(:attributes) do
+        { "title" => "Sir" }
+      end
+
+      let(:document) do
+        described_class.from_db(Person, attributes)
+      end
+
+      it "generates based on the provided class" do
+        document.should be_a(Person)
+      end
+
+      it "sets the attributes" do
+        document.title.should == "Sir"
       end
     end
   end

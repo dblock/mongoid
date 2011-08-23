@@ -32,6 +32,23 @@ module Mongoid # :nodoc:
     module Builders
       extend ActiveSupport::Concern
 
+      # Execute a block in building mode.
+      #
+      # @example Execute in building mode.
+      #   building do
+      #     relation.push(doc)
+      #   end
+      #
+      # @return [ Object ] The return value of the block.
+      #
+      # @since 2.1.0
+      def building
+        Threaded.begin_build
+        yield
+      ensure
+        Threaded.exit_build
+      end
+
       module ClassMethods #:nodoc:
 
         # Defines a builder method for an embeds_one relation. This is
@@ -45,11 +62,13 @@ module Mongoid # :nodoc:
         # @return [ Class ] The class being set up.
         #
         # @since 2.0.0.rc.1
-        def builder(name)
+        def builder(name, metadata)
           tap do
             define_method("build_#{name}") do |*args|
-              attributes = (args.any? ? args : []) + [{:binding => true}]
-              send("#{name}=", *attributes)
+              document = Factory.build(metadata.klass, args.first || {})
+              building do
+                send("#{name}=", document)
+              end
             end
           end
         end
@@ -69,7 +88,7 @@ module Mongoid # :nodoc:
         def creator(name)
           tap do
             define_method("create_#{name}") do |*args|
-              send("build_#{name}", *args).tap(&:save)
+              send("build_#{name}", *args).tap { |doc| doc.save }
             end
           end
         end

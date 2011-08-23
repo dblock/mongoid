@@ -48,10 +48,8 @@ module Mongoid #:nodoc:
     # @example Set the id.
     #   identity.identify
     def identify
-      if !document.embedded? || Mongoid.embedded_object_id
-        document.id = compose.join(" ").identify if document.primary_key
-        document.id = generate_id if document.id.blank?
-      end
+      document.id = compose.join(" ").identify if document.primary_key
+      document.id = generate_id if document.id.blank?
       document.id
     end
 
@@ -72,7 +70,7 @@ module Mongoid #:nodoc:
     # @return [ Array<Object> ] The array of keys.
     def compose
       document.primary_key.collect do |key|
-        document.attributes[key]
+        document.attributes[key.to_s]
       end.reject { |val| val.nil? }
     end
 

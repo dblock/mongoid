@@ -4,6 +4,8 @@ vi:
       messages:
         taken:
           đã bị lấy
+        callbacks:
+          "Calling %{method} on %{klass} resulted in a false return from a callback."
         document_not_found:
           Không tìm thấy văn bản cho lớp %{klass} với định danh %{identifiers}.
         invalid_database:
@@ -11,6 +13,9 @@ vi:
         invalid_type:
           Trường được định nghĩa là một %{klass}, nhưng nhận được %{other} với 
           giá trị %{value}.
+        invalid_options:
+          "Invalid option :%{invalid} provided to relation :%{name}. Valid options
+          are: %{valid}."
         unsupported_version:
           MongoDB %{version} không được hỗ trợ, xin vui lòng nâng cấp
           lên %{mongo_version}.

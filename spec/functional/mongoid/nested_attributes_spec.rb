@@ -3,7 +3,7 @@ require "spec_helper"
 describe Mongoid::NestedAttributes do
 
   before do
-    [ Person, Post, Game ].map(&:delete_all)
+    [ Person, Post, Game, Pizza, Topping ].map(&:delete_all)
   end
 
   describe "#initialize" do
@@ -539,6 +539,23 @@ describe Mongoid::NestedAttributes do
             person.should_not be_valid
           end
         end
+
+        context "when a type is passed" do
+
+          let(:canvas) do
+            Canvas.new
+          end
+
+          before do
+            Canvas.send(:undef_method, :writer_attributes=)
+            Canvas.accepts_nested_attributes_for :writer
+            canvas.writer_attributes = { :_type => "HtmlWriter" }
+          end
+
+          it "instantiates an object of the given type" do
+            canvas.writer.class.should == HtmlWriter
+          end
+        end
       end
 
       context "when the relation is embedded in" do
@@ -764,6 +781,21 @@ describe Mongoid::NestedAttributes do
             end
           end
         end
+
+        context "when a type is passed" do
+
+          let(:tool) do
+            Tool.new
+          end
+
+          before do
+            tool.palette_attributes ={ :_type => "BigPalette" }
+          end
+
+          it "instantiates an object of the given type" do
+            tool.palette.class.should == BigPalette
+          end
+        end
       end
 
       context "when the relation is an embeds many" do
@@ -880,24 +912,50 @@ describe Mongoid::NestedAttributes do
 
             context "when the ids match in an array of attributes" do
 
-              before do
-                person.addresses_attributes =
-                  [
-                    { "id" => address_one.id, "street" => "Maybachufer" },
-                    { "id" => address_two.id, "street" => "Alexander Platz" }
-                  ]
+              context "when passing in id" do
+
+                before do
+                  person.addresses_attributes =
+                    [
+                      { "id" => address_one.id, "street" => "Maybachufer" },
+                      { "id" => address_two.id, "street" => "Alexander Platz" }
+                    ]
+                end
+
+                it "updates the first existing document" do
+                  person.addresses.collect { |a| a['street'] }.include?('Maybachufer')
+                end
+
+                it "updates the second existing document" do
+                  person.addresses.collect { |a| a['street'] }.include?('Alexander Platz')
+                end
+
+                it "does not add new documents" do
+                  person.addresses.size.should == 2
+                end
               end
 
-              it "updates the first existing document" do
-                person.addresses.collect { |a| a['street'] }.include?('Maybachufer')
-              end
+              context "when passing in _id" do
 
-              it "updates the second existing document" do
-                person.addresses.collect { |a| a['street'] }.include?('Alexander Platz')
-              end
+                before do
+                  person.addresses_attributes =
+                    [
+                      { "_id" => address_one.id, "street" => "Maybachufer" },
+                      { "_id" => address_two.id, "street" => "Alexander Platz" }
+                    ]
+                end
 
-              it "does not add new documents" do
-                person.addresses.size.should == 2
+                it "updates the first existing document" do
+                  person.addresses.collect { |a| a['street'] }.include?('Maybachufer')
+                end
+
+                it "updates the second existing document" do
+                  person.addresses.collect { |a| a['street'] }.include?('Alexander Platz')
+                end
+
+                it "does not add new documents" do
+                  person.addresses.size.should == 2
+                end
               end
             end
 
@@ -955,20 +1013,51 @@ describe Mongoid::NestedAttributes do
 
                   context "when passed a #{truth} with destroy" do
 
-                    before do
-                      person.addresses_attributes =
-                        {
-                          "bar" => { "id" => address_one.id, "_destroy" => truth },
-                          "foo" => { "id" => address_two.id, "street" => "Alexander Platz" }
-                        }
+                    context "when the parent is new" do
+
+                      before do
+                        person.addresses_attributes =
+                          {
+                            "bar" => { "id" => address_one.id.to_s, "_destroy" => truth },
+                            "foo" => { "id" => address_two.id, "street" => "Alexander Platz" }
+                          }
+                      end
+
+                      it "deletes the marked document" do
+                        person.addresses.size.should == 1
+                      end
+
+                      it "does not delete the unmarked document" do
+                        person.addresses.first.street.should == "Alexander Platz"
+                      end
                     end
 
-                    it "deletes the marked document" do
-                      person.addresses.size.should == 1
-                    end
+                    context "when the parent is persisted" do
 
-                    it "does not delete the unmarked document" do
-                      person.addresses.first.street.should == "Alexander Platz"
+                      let!(:persisted) do
+                        Person.create(:ssn => "123-12-1111") do |p|
+                          p.addresses << [ address_one, address_two ]
+                        end
+                      end
+
+                      before do
+                        persisted.addresses_attributes =
+                          {
+                            "bar" => { "id" => address_one.id, "_destroy" => truth },
+                            "foo" => { "id" => address_two.id, "street" => "Alexander Platz" }
+                          }
+                        persisted.save
+                      end
+
+                      it "deletes the marked document" do
+                        persisted.reload.addresses.count.should eq(1)
+                      end
+
+                      it "does not delete the unmarked document" do
+                        persisted.reload.addresses.first.street.should eq(
+                          "Alexander Platz"
+                        )
+                      end
                     end
                   end
                 end
@@ -1440,6 +1529,27 @@ describe Mongoid::NestedAttributes do
             person.should_not be_valid
           end
         end
+
+        context "when a type is passed" do
+
+          let(:canvas) do
+            Canvas.new
+          end
+
+          before do
+            Canvas.send(:undef_method, :shapes_attributes=)
+            Canvas.accepts_nested_attributes_for :shapes
+            canvas.shapes_attributes =
+              {
+                "foo" => { "_type" => "Square" },
+                "bar" => { "_type" => "Circle" }
+              }
+          end
+
+          it "instantiates an object of the given type" do
+            canvas.shapes.map(&:class).should == [Square, Circle]
+          end
+        end
       end
 
       context "when the relation is a references one" do
@@ -1600,6 +1710,22 @@ describe Mongoid::NestedAttributes do
 
               it "replaces the document" do
                 person.game.name.should == "Pong"
+              end
+            end
+
+            context "when updating attributes" do
+
+              let!(:pizza) do
+                Pizza.create(:name => "large")
+              end
+
+              before do
+                pizza.topping = Topping.create(:name => "cheese")
+                pizza.update_attributes(:topping_attributes => { :name => "onions" })
+              end
+
+              it "persists the attribute changes" do
+                pizza.reload.topping.name.should eq("onions")
               end
             end
 
@@ -1822,6 +1948,23 @@ describe Mongoid::NestedAttributes do
           it "propagates invalidity to parent" do
             person.game.should_not be_valid
             person.should_not be_valid
+          end
+        end
+
+        context "when a type is passed" do
+
+          let(:driver) do
+            Driver.new
+          end
+
+          before do
+            Driver.send(:undef_method, :vehicle_attributes=)
+            Driver.accepts_nested_attributes_for :vehicle
+            driver.vehicle_attributes = { "_type" => "Truck" }
+          end
+
+          it "instantiates an object of the given type" do
+            driver.vehicle.class.should == Truck
           end
         end
       end
@@ -2048,6 +2191,23 @@ describe Mongoid::NestedAttributes do
             end
           end
         end
+
+        context "when a type is passed" do
+
+          let(:vehicle) do
+            Vehicle.new
+          end
+
+          before do
+            Vehicle.send(:undef_method, :driver_attributes=)
+            Vehicle.accepts_nested_attributes_for :driver
+            vehicle.driver_attributes = { "_type" => "Learner" }
+          end
+
+          it "instantiates an object of the given type" do
+            vehicle.driver.class.should == Learner
+          end
+        end
       end
 
       context "when the relation is a references many" do
@@ -2167,12 +2327,12 @@ describe Mongoid::NestedAttributes do
 
               context "when allow_destroy is true" do
 
-                before(:all) do
+                before do
                   Person.send(:undef_method, :posts_attributes=)
                   Person.accepts_nested_attributes_for :posts, :allow_destroy => true
                 end
 
-                after(:all) do
+                after do
                   Person.send(:undef_method, :posts_attributes=)
                   Person.accepts_nested_attributes_for :posts
                 end
@@ -2230,12 +2390,12 @@ describe Mongoid::NestedAttributes do
 
               context "when allow_destroy is false" do
 
-                before(:all) do
+                before do
                   Person.send(:undef_method, :posts_attributes=)
                   Person.accepts_nested_attributes_for :posts, :allow_destroy => false
                 end
 
-                after(:all) do
+                after do
                   Person.send(:undef_method, :posts_attributes=)
                   Person.accepts_nested_attributes_for :posts
                 end
@@ -2303,6 +2463,11 @@ describe Mongoid::NestedAttributes do
                   Person.accepts_nested_attributes_for :posts
                 end
 
+                after(:all) do
+                  Person.send(:undef_method, :posts_attributes=)
+                  Person.accepts_nested_attributes_for :posts
+                end
+
                 [ 1, "1", true, "true" ].each do |truth|
 
                   context "when passed a #{truth} with destroy" do
@@ -2311,7 +2476,10 @@ describe Mongoid::NestedAttributes do
                       person.posts_attributes =
                         {
                           "0" => {
-                            "id" => post_one.id, "title" => "Another Title", "_destroy" => truth },
+                            "id" => post_one.id,
+                            "title" => "Another Title",
+                            "_destroy" => truth
+                          },
                           "1" => { "id" => post_two.id, "title" => "New Title" }
                         }
                     end
@@ -2319,11 +2487,11 @@ describe Mongoid::NestedAttributes do
                     context "when reloading" do
 
                       it "does not ignore the marked document" do
-                        person.posts(true).first.title.should == "Another Title"
+                        person.posts(true).find(post_one.id).title.should == "Another Title"
                       end
 
                       it "does not delete the unmarked document" do
-                        person.posts(true).last.title.should == "New Title"
+                        person.posts(true).find(post_two.id).title.should == "New Title"
                       end
 
                       it "does not add additional documents" do
@@ -2682,6 +2850,27 @@ describe Mongoid::NestedAttributes do
           it "propagates invalidity to parent" do
             person.should_not be_valid
             person.posts.first.should_not be_valid
+          end
+        end
+
+        context "when a type is passed" do
+
+          let(:shipping_container) do
+            ShippingContainer.new
+          end
+
+          before do
+            ShippingContainer.send(:undef_method, :vehicles_attributes=)
+            ShippingContainer.accepts_nested_attributes_for :vehicles
+            shipping_container.vehicles_attributes =
+              {
+                "foo" => { "_type" => "Car" },
+                "bar" => { "_type" => "Truck" }
+              }
+          end
+
+          it "instantiates an object of the given type" do
+            shipping_container.vehicles.map(&:class).should == [Car, Truck]
           end
         end
       end

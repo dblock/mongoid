@@ -56,6 +56,7 @@ describe Mongoid::Collections do
   describe ".index_information" do
 
     before do
+      Person.delete_all
       Mongoid.autocreate_indexes = true
     end
 
@@ -68,44 +69,61 @@ describe Mongoid::Collections do
     end
   end
 
-  describe ".logger=" do
-
-    before do
-      @logger = stub.quacks_like(Logger.allocate)
-      Person.logger = @logger
-    end
-
-    after do
-      Person.logger = nil
-    end
-
-    it "sets the logger on the connection" do
-      Person.db.connection.logger.should == @logger
-    end
-  end
-
   describe ".store_in" do
 
-    context "on a parent class" do
+    let(:collection) do
+      stub
+    end
 
-      it "sets the collection name and collection for the document" do
-        Mongoid::Collection.expects(:new).with(Patient, "population").returns(@collection)
-        Patient.store_in :population
-        Patient.collection_name.should == "population"
+    context "when providing options" do
+
+      before do
+        Mongoid::Collection.expects(:new).with(
+          Patient,
+          "population",
+          { :capped => true, :size => 1000 }
+        ).returns(collection)
+      end
+
+      it "passes the options to the collection" do
+        Patient.store_in :population, :capped => true, :size => 1000
       end
     end
 
-    context "on a subclass" do
+    context "when setting on a parent class" do
+
+      before do
+        Mongoid::Collection.expects(:new).with(
+          Patient,
+          "population",
+          {}
+        ).returns(collection)
+        Patient.store_in :population
+      end
+
+      it "sets the collection name" do
+        Patient.collection_name.should eq("population")
+      end
+    end
+
+    context "when setting on a subclass" do
+
+      before do
+        Mongoid::Collection.expects(:new).with(
+          Firefox,
+          "browsers",
+          {}
+        ).returns(collection)
+        Firefox.store_in :browsers
+      end
 
       after do
-        Mongoid::Collection.expects(:new).with(Firefox, "canvases")
+        Mongoid::Collection.expects(:new).with(Firefox, "canvases", {})
         Firefox.store_in :canvases
       end
 
       it "changes the collection name for the entire hierarchy" do
-        Mongoid::Collection.expects(:new).with(Firefox, "browsers").returns(@collection)
-        Firefox.store_in :browsers
-        Canvas.collection_name.should == "browsers"
+        Canvas.collection_name.should eq("browsers")
       end
     end
   end

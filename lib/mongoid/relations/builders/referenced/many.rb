@@ -17,8 +17,8 @@ module Mongoid # :nodoc:
           def build(type = nil)
             return object unless query?
             return [] if object.is_a?(Array)
-            key = metadata.foreign_key
-            metadata.klass.where(key => convertable(metadata, object))
+            crit = metadata.criteria(convertable(metadata, object))
+            IdentityMap.get_selector(crit.klass, crit.selector) || crit
           end
 
           private
@@ -37,7 +37,7 @@ module Mongoid # :nodoc:
             if inverse.using_object_ids? || object.is_a?(BSON::ObjectId)
               object
             else
-              Mongoid::Criterion::Unconvertable.new(object)
+              Criterion::Unconvertable.new(object)
             end
           end
         end

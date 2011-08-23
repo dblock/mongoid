@@ -16,11 +16,20 @@ module Mongoid # :nodoc:
           # @return [ Array<Document> ] The documents.
           def build(type = nil)
             return object.try(:dup) unless query?
-            begin
-              metadata.klass.find(object)
-            rescue Errors::DocumentNotFound
-              return []
-            end
+            metadata.criteria(object)
+          end
+
+          # Do we need to perform a database query? It will be so if the object we
+          # have is not a document.
+          #
+          # @example Should we query the database?
+          #   builder.query?
+          #
+          # @return [ true, false ] Whether a database query should happen.
+          #
+          # @since 2.0.0.rc.1
+          def query?
+            object.nil? || !object.first.is_a?(Mongoid::Document)
           end
         end
       end

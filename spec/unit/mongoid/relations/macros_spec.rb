@@ -6,6 +6,7 @@ describe Mongoid::Relations::Macros do
     include Mongoid::Relations
     include Mongoid::Dirty
     include Mongoid::Fields
+    include Mongoid::Callbacks
     include Mongoid::Validations
   end
 
@@ -119,6 +120,25 @@ describe Mongoid::Relations::Macros do
       end
     end
 
+    context 'when defining order on relation' do
+
+      before do
+        klass.embeds_many(:addresses, :order => :number.asc)
+      end
+
+      let(:metadata) do
+        klass.relations["addresses"]
+      end
+
+      it "adds metadata to klass" do
+        metadata.order.should_not be_nil
+      end
+
+      it "returns Mongoid::Criterion::Complex" do
+        metadata.order.should be_kind_of(Mongoid::Criterion::Complex)
+      end
+    end
+
     context "when setting validate to false" do
 
       before do
@@ -202,16 +222,16 @@ describe Mongoid::Relations::Macros do
     end
   end
 
-  describe ".referenced_in" do
+  describe ".belongs_to" do
 
     it "defines the macro" do
-      klass.should respond_to(:referenced_in)
+      klass.should respond_to(:belongs_to)
     end
 
     context "when defining the relation" do
 
       before do
-        klass.referenced_in(:person)
+        klass.belongs_to(:person)
       end
 
       it "adds the metadata to the klass" do
@@ -235,12 +255,6 @@ describe Mongoid::Relations::Macros do
         klass.allocate.should respond_to(:person_id)
       end
 
-      it "adds associated validations" do
-        klass._validators[:person].first.should be_a(
-          Mongoid::Validations::ReferencedValidator
-        )
-      end
-
       context "metadata properties" do
 
         let(:metadata) do
@@ -258,16 +272,16 @@ describe Mongoid::Relations::Macros do
     end
   end
 
-  describe ".references_many" do
+  describe ".has_many" do
 
     it "defines the macro" do
-      klass.should respond_to(:references_many)
+      klass.should respond_to(:has_many)
     end
 
     context "when defining the relation" do
 
       before do
-        klass.references_many(:posts)
+        klass.has_many(:posts)
       end
 
       it "adds the metadata to the klass" do
@@ -289,7 +303,7 @@ describe Mongoid::Relations::Macros do
 
       it "adds an associated validation" do
         klass._validators[:posts].first.should be_a(
-          Mongoid::Validations::ReferencedValidator
+          Mongoid::Validations::AssociatedValidator
         )
       end
 
@@ -309,10 +323,29 @@ describe Mongoid::Relations::Macros do
       end
     end
 
+    context 'when defining order on relation' do
+
+      before do
+        klass.has_many(:posts, :order => :rating.asc)
+      end
+
+      let(:metadata) do
+        klass.relations["posts"]
+      end
+
+      it "adds metadata to klass" do
+        metadata.order.should_not be_nil
+      end
+
+      it "returns Mongoid::Criterion::Complex" do
+        metadata.order.should be_kind_of(Mongoid::Criterion::Complex)
+      end
+    end
+
     context "when setting validate to false" do
 
       before do
-        klass.references_many(:posts, :validate => false)
+        klass.has_many(:posts, :validate => false)
       end
 
       it "does not add associated validations" do
@@ -321,16 +354,16 @@ describe Mongoid::Relations::Macros do
     end
   end
 
-  describe ".references_and_referenced_in_many" do
+  describe ".has_and_belongs_to_many" do
 
     it "defines the macro" do
-      klass.should respond_to(:references_and_referenced_in_many)
+      klass.should respond_to(:has_and_belongs_to_many)
     end
 
     context "when defining the relation" do
 
       before do
-        klass.references_and_referenced_in_many(:preferences)
+        klass.has_and_belongs_to_many(:preferences)
       end
 
       it "adds the metadata to the klass" do
@@ -354,6 +387,26 @@ describe Mongoid::Relations::Macros do
         klass.allocate.should respond_to(:preference_ids)
       end
 
+      context 'when defining order on relation' do
+
+        before do
+          klass.has_and_belongs_to_many(:preferences, :order => :ranking.asc)
+        end
+
+        let(:metadata) do
+          klass.relations["preferences"]
+        end
+
+        it "adds metadata to klass" do
+          metadata.order.should_not be_nil
+        end
+
+        it "returns Mongoid::Criterion::Complex" do
+          metadata.order.should be_kind_of(Mongoid::Criterion::Complex)
+        end
+      end
+
+
       context "metadata properties" do
 
         let(:metadata) do
@@ -371,16 +424,16 @@ describe Mongoid::Relations::Macros do
     end
   end
 
-  describe ".references_one" do
+  describe ".has_one" do
 
     it "defines the macro" do
-      klass.should respond_to(:references_one)
+      klass.should respond_to(:has_one)
     end
 
     context "when defining the relation" do
 
       before do
-        klass.references_one(:game)
+        klass.has_one(:game)
       end
 
       it "adds the metadata to the klass" do
@@ -410,7 +463,7 @@ describe Mongoid::Relations::Macros do
 
       it "adds an associated validation" do
         klass._validators[:game].first.should be_a(
-          Mongoid::Validations::ReferencedValidator
+          Mongoid::Validations::AssociatedValidator
         )
       end
 
@@ -433,7 +486,7 @@ describe Mongoid::Relations::Macros do
     context "when setting validate to false" do
 
       before do
-        klass.references_one(:game, :validate => false)
+        klass.has_one(:game, :validate => false)
       end
 
       it "does not add associated validations" do
@@ -479,6 +532,53 @@ describe Mongoid::Relations::Macros do
     it "has values that are metadata" do
       klass.relations.values.first.should
         be_a_kind_of(Mongoid::Relations::Metadata)
+    end
+  end
+
+  context "when creating an association with an extension" do
+
+    class Peep
+      include Mongoid::Document
+    end
+
+    class Handle
+      include Mongoid::Document
+
+      module Extension
+        def short_name
+          "spec"
+        end
+      end
+    end
+
+    let(:peep) do
+      Peep.new(:handle => Handle.new)
+    end
+
+    context "when the extension is a block" do
+
+      before do
+        Peep.embeds_one(:handle) do
+          def full_name
+            "spec"
+          end
+        end
+      end
+
+      it "extends the relation" do
+        peep.handle.full_name.should eq("spec")
+      end
+    end
+
+    context "when the extension is a module" do
+
+      before do
+        Peep.embeds_one(:handle, :extend => Handle::Extension)
+      end
+
+      it "extends the relation" do
+        peep.handle.short_name.should eq("spec")
+      end
     end
   end
 end

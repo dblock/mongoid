@@ -451,7 +451,7 @@ describe Mongoid::Contexts::Mongo do
       before do
         collection.expects(:find_one).with(
           {},
-          { :sort => [[:title, :desc]] }
+          { :sort => [[:title, :desc], [:_id, :desc]] }
         ).returns(
           { "title" => "Sir", "_type" => "Person" }
         )
@@ -596,6 +596,10 @@ describe Mongoid::Contexts::Mongo do
 
     before do
       Person.stubs(:collection).returns(collection)
+    end
+
+    after do
+      Person.unstub(:collection)
     end
 
     it "returns the first document" do

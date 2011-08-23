@@ -16,13 +16,9 @@ module Mongoid # :nodoc:
           # @return [ Document ] A single document.
           def build(type = nil)
             return object unless query?
-            if object.is_a?(Hash)
-              object.delete(:binding)
-              return Mongoid::Factory.build(metadata.klass, object)
-            end
-            metadata.klass.first(
-              :conditions => { metadata.foreign_key => object }
-            )
+            criteria = metadata.criteria(object)
+            IdentityMap.get_selector(criteria.klass, criteria.selector) ||
+              criteria.first
           end
         end
       end
