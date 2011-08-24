@@ -770,7 +770,7 @@ describe Mongoid::Persistence do
         end
         
         it "via update_attributes with id" do
-          person.update_attributes({:houses => [ wife_house.id ]})
+          person.update_attributes({:house_ids => [ wife_house.id ]})
           person.houses.should == [ wife_house ]
           person.reload.houses.should == [ wife_house ]
         end
@@ -781,13 +781,16 @@ describe Mongoid::Persistence do
 
         it "via update_attributes" do
           person.update_attributes({:houses => [ wife_house, exwife_house, girlfriend_house ]})
-          person.houses.sort.should == [ girlfriend_house, wife_house, exwife_house ]
-          # BUGBUG?: comes back in reverse (?) or random order
-          person.reload.houses.sort.should == [ girlfriend_house, wife_house, exwife_house ]
+          person.houses.should == [ girlfriend_house, wife_house, exwife_house ]
+        end
+        
+        it "via update_attributes in the order inserted" do
+          person.update_attributes({:houses => [ wife_house, exwife_house, girlfriend_house ]})
+          person.reload.houses.should == [ girlfriend_house, wife_house, exwife_house ]
         end
 
         it "via update_attributes with id" do
-          person.update_attributes({:houses => [ wife_house.id, exwife_house.id, girlfriend_house.id ]})
+          person.update_attributes({:house_ids => [ wife_house.id, exwife_house.id, girlfriend_house.id ]})
           person.houses.sort.should == [ girlfriend_house, wife_house, exwife_house ]
           person.reload.houses.sort.should == [ girlfriend_house, wife_house, exwife_house ]
         end
@@ -825,9 +828,7 @@ describe Mongoid::Persistence do
         end
 
         it "via update_attributes with id with one left" do
-          # BUGBUG?: once i did update_attributes, another update_attributes with id fails unless the instance is reloaded
-          person.reload
-          person.update_attributes({:houses => [ girlfriend_house.id ]})
+          person.update_attributes({:house_ids => [ girlfriend_house.id ]})
           person.houses.should == [ girlfriend_house ] 
           person.reload.houses.should == [ girlfriend_house ]
         end
