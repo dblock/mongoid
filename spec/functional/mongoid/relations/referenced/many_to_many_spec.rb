@@ -156,7 +156,7 @@ describe Mongoid::Relations::Referenced::ManyToMany do
             end
           end
         end
-
+        
         context "when both sides have been persisted" do
 
           let(:person) do
@@ -208,6 +208,30 @@ describe Mongoid::Relations::Referenced::ManyToMany do
               loaded_event.administrators.should == [ person ]
             end
           end
+        end
+        
+        context "when the relation also includes a has_many relation" do
+
+          let(:artwork) do
+            Artwork.create
+          end
+          
+          let(:exhibition) do
+            Exhibition.create
+          end
+          
+          let(:exhibitor) do
+            Exhibitor.create({exhibition: exhibition})
+          end
+
+          before do
+            artwork.exhibitors << exhibitor
+          end
+
+          it "creates a single artwork object" do
+            Artwork.count.should == 1
+          end
+
         end
 
         context "when the relation is self referencing" do
