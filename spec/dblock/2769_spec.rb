@@ -9,7 +9,6 @@ module Test_2769
   class Slice
     include Mongoid::Document
     field :position, default: 0
-    include Mongoid::Document
     embedded_in :sandwiches
     embeds_one :measure
   end
