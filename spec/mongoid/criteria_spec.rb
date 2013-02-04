@@ -1284,6 +1284,202 @@ describe Mongoid::Criteria do
       end
     end
 
+    context "when using hash ids" do
+
+      before(:all) do
+        Band.field :_id, type: Hash
+      end
+
+      after(:all) do
+        Band.field :_id, type: Moped::BSON::ObjectId, default: ->{ Moped::BSON::ObjectId.new }
+      end
+
+      let!(:band) do
+        Band.create do |band|
+          band.id = {"new-order" => true, "Depeche Mode" => false}
+        end
+      end
+
+      context "when providing a single id" do
+
+        context "when the id matches" do
+
+          let(:found) do
+            Band.find(band.id)
+          end
+
+          it "returns the matching document" do
+            found.should eq(band)
+          end
+        end
+
+        context "when the id does not match" do
+
+          context "when raising a not found error" do
+
+            before do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find({"new-order" => false, "Faith no More" => true})
+            end
+
+            it "raises an error" do
+              expect {
+                found
+              }.to raise_error(Mongoid::Errors::DocumentNotFound)
+            end
+          end
+
+          context "when raising no error" do
+
+            before do
+              Mongoid.raise_not_found_error = false
+            end
+
+            after do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find({"new-order" => false, "Faith no More" => true})
+            end
+
+            it "returns nil" do
+              found.should be_nil
+            end
+          end
+        end
+      end
+
+      context "when providing a splat of ids" do
+
+        let!(:band_two) do
+          Band.create do |band|
+            band.id = {"Radiohead" => false, "Nirvana"=> true}
+          end
+        end
+
+        context "when all ids match" do
+
+          let(:found) do
+            Band.find(band.id, band_two.id)
+          end
+
+          it "contains the first match" do
+            found.should include(band)
+          end
+
+          it "contains the second match" do
+            found.should include(band_two)
+          end
+        end
+
+        context "when any id does not match" do
+
+          context "when raising a not found error" do
+
+            before do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find(band.id, {"Radiohead" => true, "Nirvana"=> false})
+            end
+
+            it "raises an error" do
+              expect {
+                found
+              }.to raise_error(Mongoid::Errors::DocumentNotFound)
+            end
+          end
+
+          context "when raising no error" do
+
+            before do
+              Mongoid.raise_not_found_error = false
+            end
+
+            after do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find(band.id, {"Radiohead" => true, "Nirvana"=> false})
+            end
+
+            it "returns only the matching documents" do
+              found.should eq([ band ])
+            end
+          end
+        end
+      end
+
+      context "when providing an array of ids" do
+
+        let!(:band_two) do
+          Band.create do |band|
+            band.id = {"Radiohead" => false, "Nirvana"=> true}
+          end
+        end
+
+        context "when all ids match" do
+
+          let(:found) do
+            Band.find([ band.id, band_two.id ])
+          end
+
+          it "contains the first match" do
+            found.should include(band)
+          end
+
+          it "contains the second match" do
+            found.should include(band_two)
+          end
+        end
+
+        context "when any id does not match" do
+
+          context "when raising a not found error" do
+
+            before do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find([ band.id, {"Radiohead" => true, "Nirvana"=> false} ])
+            end
+
+            it "raises an error" do
+              expect {
+                found
+              }.to raise_error(Mongoid::Errors::DocumentNotFound)
+            end
+          end
+
+          context "when raising no error" do
+
+            before do
+              Mongoid.raise_not_found_error = false
+            end
+
+            after do
+              Mongoid.raise_not_found_error = true
+            end
+
+            let(:found) do
+              Band.find([ band.id, {"Radiohead" => true, "Nirvana"=> false} ])
+            end
+
+            it "returns only the matching documents" do
+              found.should eq([ band ])
+            end
+          end
+        end
+      end
+    end
+
     context "when using integer ids" do
 
       before(:all) do
@@ -2737,81 +2933,235 @@ describe Mongoid::Criteria do
 
     context "when including a belongs to relation" do
 
-      let!(:person_two) do
-        Person.create
-      end
+      context "when the criteria is from an embedded relation" do
 
-      let!(:post_one) do
-        person.posts.create(title: "one")
-      end
-
-      let!(:post_two) do
-        person_two.posts.create(title: "two")
-      end
-
-      before do
-        Mongoid::IdentityMap.clear
-      end
-
-      context "when calling first" do
-
-        let!(:criteria) do
-          Post.includes(:person)
+        let(:peep) do
+          Person.create
         end
 
-        let!(:context) do
-          criteria.context
+        let!(:address_one) do
+          peep.addresses.create(street: "rosenthaler")
+        end
+
+        let!(:address_two) do
+          peep.addresses.create(street: "weinmeister")
+        end
+
+        let!(:depeche) do
+          Band.create!(name: "Depeche Mode")
+        end
+
+        let!(:tool) do
+          Band.create!(name: "Tool")
         end
 
         before do
-          context.should_receive(:eager_load_one).with(post_one).once.and_call_original
+          address_one.band = depeche
+          address_two.band = tool
+          address_one.save
+          address_two.save
         end
 
-        let!(:document) do
-          criteria.first
+        context "when calling first" do
+
+          before do
+            Mongoid::IdentityMap.clear
+          end
+
+          let(:criteria) do
+            peep.reload.addresses.includes(:band)
+          end
+
+          let(:context) do
+            criteria.context
+          end
+
+          before do
+            context.should_receive(:eager_load_one).with(address_one).once.and_call_original
+          end
+
+          let!(:document) do
+            criteria.first
+          end
+
+          let(:eager_loaded) do
+            Mongoid::IdentityMap[Band.collection_name]
+          end
+
+          it "eager loads the first document" do
+            eager_loaded[depeche.id].should eq(depeche)
+          end
+
+          it "does not eager load the last document" do
+            eager_loaded[tool.id].should be_nil
+          end
+
+          it "returns the document" do
+            document.should eq(address_one)
+          end
         end
 
-        it "eager loads for the first document" do
-          Mongoid::IdentityMap[Person.collection_name][person.id].should eq(person)
+        context "when calling last" do
+
+          before do
+            Mongoid::IdentityMap.clear
+          end
+
+          let(:criteria) do
+            peep.reload.addresses.includes(:band)
+          end
+
+          let(:context) do
+            criteria.context
+          end
+
+          before do
+            context.should_receive(:eager_load_one).with(address_two).once.and_call_original
+          end
+
+          let!(:document) do
+            criteria.last
+          end
+
+          let(:eager_loaded) do
+            Mongoid::IdentityMap[Band.collection_name]
+          end
+
+          it "does not eager load the first document" do
+            eager_loaded[depeche.id].should be_nil
+          end
+
+          it "eager loads the last document" do
+            eager_loaded[tool.id].should eq(tool)
+          end
+
+          it "returns the document" do
+            document.should eq(address_two)
+          end
         end
 
-        it "does not eager loads for the last document" do
-          Mongoid::IdentityMap[Person.collection_name][person_two.id].should be_nil
-        end
+        context "when iterating all documents" do
 
-        it "returns the first document" do
-          document.should eq(post_one)
+          before do
+            Mongoid::IdentityMap.clear
+          end
+
+          let(:criteria) do
+            peep.reload.addresses.includes(:band)
+          end
+
+          let(:context) do
+            criteria.context
+          end
+
+          before do
+            context.
+              should_receive(:eager_load).
+              with([ address_one, address_two ]).
+              once.
+              and_call_original
+          end
+
+          let!(:documents) do
+            criteria.to_a
+          end
+
+          let(:eager_loaded) do
+            Mongoid::IdentityMap[Band.collection_name]
+          end
+
+          it "eager loads the first document" do
+            eager_loaded[depeche.id].should eq(depeche)
+          end
+
+          it "eager loads the last document" do
+            eager_loaded[tool.id].should eq(tool)
+          end
+
+          it "returns the documents" do
+            documents.should eq([ address_one, address_two ])
+          end
         end
       end
 
-      context "when calling last" do
+      context "when the criteria is from the root" do
 
-        let!(:criteria) do
-          Post.includes(:person)
+        let!(:person_two) do
+          Person.create
         end
 
-        let!(:context) do
-          criteria.context
+        let!(:post_one) do
+          person.posts.create(title: "one")
+        end
+
+        let!(:post_two) do
+          person_two.posts.create(title: "two")
         end
 
         before do
-          context.should_receive(:eager_load_one).with(post_two).once.and_call_original
+          Mongoid::IdentityMap.clear
         end
 
-        let!(:document) do
-          criteria.last
+        context "when calling first" do
+
+          let!(:criteria) do
+            Post.includes(:person)
+          end
+
+          let!(:context) do
+            criteria.context
+          end
+
+          before do
+            context.should_receive(:eager_load_one).with(post_one).once.and_call_original
+          end
+
+          let!(:document) do
+            criteria.first
+          end
+
+          it "eager loads for the first document" do
+            Mongoid::IdentityMap[Person.collection_name][person.id].should eq(person)
+          end
+
+          it "does not eager loads for the last document" do
+            Mongoid::IdentityMap[Person.collection_name][person_two.id].should be_nil
+          end
+
+          it "returns the first document" do
+            document.should eq(post_one)
+          end
         end
 
-        it "eager loads for the first document" do
-          Mongoid::IdentityMap[Person.collection_name][person_two.id].should eq(person_two)
-        end
+        context "when calling last" do
 
-        it "does not eager loads for the last document" do
-          Mongoid::IdentityMap[Person.collection_name][person.id].should be_nil
-        end
+          let!(:criteria) do
+            Post.includes(:person)
+          end
 
-        it "returns the last document" do
-          document.should eq(post_two)
+          let!(:context) do
+            criteria.context
+          end
+
+          before do
+            context.should_receive(:eager_load_one).with(post_two).once.and_call_original
+          end
+
+          let!(:document) do
+            criteria.last
+          end
+
+          it "eager loads for the first document" do
+            Mongoid::IdentityMap[Person.collection_name][person_two.id].should eq(person_two)
+          end
+
+          it "does not eager loads for the last document" do
+            Mongoid::IdentityMap[Person.collection_name][person.id].should be_nil
+          end
+
+          it "returns the last document" do
+            document.should eq(post_two)
+          end
         end
       end
     end
