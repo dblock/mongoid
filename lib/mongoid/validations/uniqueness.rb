@@ -21,7 +21,7 @@ module Mongoid
       # Unfortunately, we have to tie Uniqueness validators to a class.
       #
       # @example Setup the validator.
-      #   UniquenessValidator.new.setup(Person)
+      # UniquenessValidator.new.setup(Person)
       #
       # @param [ Class ] klass The class getting validated.
       #

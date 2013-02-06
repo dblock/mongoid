@@ -1994,4 +1994,42 @@ describe Mongoid::Validations::UniquenessValidator do
       end
     end
   end
+
+  context "when describing validation on the instance level" do
+
+    let!(:dictionary) do
+      Dictionary.create!(name: "en")
+    end
+
+    let(:validators) do
+      dictionary.validates_uniqueness_of :name
+    end
+
+    it "adds the validation only to the instance" do
+      validators.should eq([ described_class ])
+    end
+  end
+
+  context "when validation works with inheritance" do
+
+    before do
+      Actor.validates_uniqueness_of :name
+      Actor.create!(name: "Johnny Depp")
+    end
+
+    after do
+      Actor.reset_callbacks(:validate)
+    end
+
+    let!(:subclass_document_with_duplicated_name) do
+      Actress.new(name: "Johnny Depp")
+    end
+
+    it "should be invalid" do
+      subclass_document_with_duplicated_name.tap do |d|
+        d.should be_invalid
+        d.errors[:name].should eq([ "is already taken" ])
+      end
+    end
+  end
 end

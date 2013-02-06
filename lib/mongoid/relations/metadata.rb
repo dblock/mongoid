@@ -138,6 +138,34 @@ module Mongoid
         @constraint ||= Constraint.new(self)
       end
 
+      # Does the metadata have a counter cache?
+      #
+      # @example Is the metadata counter_cached?
+      #   metadata.counter_cached?
+      #
+      # @return [ true, false ] If the metadata has counter_cache
+      #
+      # @since 3.1.0
+      def counter_cached?
+        !!self[:counter_cache]
+      end
+
+      # Returns the counter cache column name
+      #
+      # @example Get the counter cache column.
+      #   metadata.counter_cache_column_name
+      #
+      # @return [ String ] The counter cache column
+      #
+      # @since 3.1.0
+      def counter_cache_column_name
+        if self[:counter_cache] == true
+          "#{inverse_class_name.demodulize.underscore.pluralize}_count"
+        else
+          self[:counter_cache].to_s
+        end
+      end
+
       # Get the criteria that is used to query for this metadata's relation.
       #
       # @example Get the criteria.
@@ -361,6 +389,7 @@ module Mongoid
   autobuild:    #{autobuilding?}
   class_name:   #{class_name}
   cyclic:       #{cyclic.inspect}
+  counter_cache:#{counter_cached?}
   dependent:    #{dependent.inspect}
   inverse_of:   #{inverse_of.inspect}
   key:          #{key}
@@ -477,13 +506,13 @@ module Mongoid
       # @example Get the inverse metadata.
       #   metadata.inverse_metadata(doc)
       #
-      # @param [ Document ] document The document to check.
+      # @param [ Document, Class ] object The document or class.
       #
       # @return [ Metadata ] The inverse metadata.
       #
       # @since 2.1.0
-      def inverse_metadata(document)
-        document.reflect_on_association(inverse(document))
+      def inverse_metadata(object)
+        object.reflect_on_association(inverse(object))
       end
 
       # Returns the inverse_of option of the relation.

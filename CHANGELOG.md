@@ -7,6 +7,13 @@ For instructions on upgrading to newer versions, visit
 
 ### New Features
 
+* \#2776 MongoDB 2.4.x new index types are now supported: "2dsphere",
+  "text", and "hashed". (Irakli Janiashvili)
+
+* \#2767 $maxScan support from Origin is now supported. (Jonathan Hyman)
+
+* \#2701 Cleanup up extra excessive database queries with 1-1 relations.
+
 * \#2693 Custom collection names can be passed to the model generator.
   (Subhash Bhushan)
 
@@ -31,6 +38,22 @@ For instructions on upgrading to newer versions, visit
 * \#2667 `exists?` no longer hits the database in cases where we have
   the necessary information in memory.
 
+* \#2665 Mongoid now supports a counter cache for `belongs_to`
+  relations. (Arthur Neves)
+
+        class Band
+          include Mongoid::Document
+          belongs_to :label, counter_cache: "b_count"
+        end
+
+        class Album
+          include Mongoid::Document
+          belongs_to :band, counter_cache: true
+        end
+
+* \#2662 Embedded documents that have `belongs_to` relations may now
+  eager load them.
+
 * \#2657 Logger getter and setter convenience methods have been
   added to the `Config` module. (Arthur Neves)
 
@@ -50,6 +73,9 @@ For instructions on upgrading to newer versions, visit
         end
 
 * \#2609 Pass through batch_size option to query. (Martin Mauch)
+
+* \#2555 Passing hashes to `find` when the documents id is of type hash
+  now properly works. (Szymon Kurcab)
 
 * \#2545 The `$` positional operator is used for update selectors on
   embedded documents that are nested 1 level deep, when appropriate.
@@ -84,6 +110,9 @@ For instructions on upgrading to newer versions, visit
           field :status, type: Integer
           index({ status: 1 }, { expire_after_seconds: 3600 })
         end
+
+* \#2373 Relations with the `touch: true` option will now be automatically
+  touched when the child document is created or destroyed.
 
 * Added `Document.first_or_create!` and `Criteria#first_or_create!`. This
   raises a validations error if creation fails validation.
@@ -200,14 +229,49 @@ For instructions on upgrading to newer versions, visit
 * \#2664 In memory sorting of embedded documents now properly works when
   multiple fields are provided. (Neer Friedman)
 
+## 3.0.22
+
+### Resolved Issues
+
+* \#2786 Fixed regressed cascading callbacks on destroy not firing.
+
+* \#2784 Fixed uniqueness validation properly getting added to subclasses.
+  (Takeshi Akima)
+
+## 3.0.21
+
+### Resolved Issues
+
+* \#2781 / * \#2777 - Fixed issue with serialization of `DateTime` that was
+  only present in Rails environments.
+
 ## 3.0.20
 
 ### Resolved Issues
+
+* \#2774 Ensure validations macros for uniqueness, presence, and associated
+  are also available at the instance level.
+
+* \#2772 Localized fields are now properly handled when cloning a document.
+
+* \#2758 `Mongoid.create_indexes` does not fail when cannot constantize class.
+  (Arthur Neves)
+
+* \#2743 Persistence options are no longer cleared when loading revisions.
+  (Arthur Neves)
+
+* \#2741 Fix time mongoization usec rounding errors on MRI and JRuby.
 
 * \#2740 Support integer keys in hash fields when using `read_attribute` with
   dot notation.
 
 * \#2739 Ensure integer deserialization properly casts to integers.
+
+* \#2733 Many to many relations with `inverse_of: nil` do not persist the
+  inverse relation on `<<` or `push` if the document is already persisted.
+
+* \#2705 Fixed logic around when children can be added to the cascading
+  callbacks list.
 
 ## 3.0.19
 

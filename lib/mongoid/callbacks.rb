@@ -12,6 +12,7 @@ module Mongoid
       :after_find,
       :after_initialize,
       :after_save,
+      :after_touch,
       :after_update,
       :after_upsert,
       :after_validation,
@@ -32,7 +33,7 @@ module Mongoid
       extend ActiveModel::Callbacks
       include ActiveModel::Validations::Callbacks
 
-      define_model_callbacks :build, :find, :initialize, only: :after
+      define_model_callbacks :build, :find, :initialize, :touch, only: :after
       define_model_callbacks :create, :destroy, :save, :update, :upsert
 
       attr_accessor :before_callback_halted
@@ -50,6 +51,21 @@ module Mongoid
     # @since 3.0.6
     def callback_executable?(kind)
       respond_to?("_#{kind}_callbacks")
+    end
+
+    # Is the document currently in a state that could potentially require
+    # callbacks to be executed?
+    #
+    # @example Is the document in a callback state?
+    #   document.in_callback_state?(:update)
+    #
+    # @param [ Symbol ] kind The callback kind.
+    #
+    # @return [ true, false ] If the document is in a callback state.
+    #
+    # @since 3.1.0
+    def in_callback_state?(kind)
+      [ :create, :destroy ].include?(kind) || new_record? || flagged_for_destroy? || changed?
     end
 
     # Run only the after callbacks for the specific event.
@@ -172,8 +188,10 @@ module Mongoid
     #
     # @since 2.3.0
     def cascadable_child?(kind, child)
-      return false if [ :initialize, :find ].include?(kind) || !child.callback_executable?(kind)
-      [ :create, :destroy ].include?(kind) || child.changed? || child.new_record?
+      if kind == :initialize || kind == :find
+        return false
+      end
+      child.callback_executable?(kind) ? child.in_callback_state?(kind) : false
     end
 
     # Get the name of the callback that the child should fire. This changes
