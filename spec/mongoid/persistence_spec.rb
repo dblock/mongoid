@@ -913,8 +913,8 @@ describe Mongoid::Persistence do
             touched.should be_true
           end
 
-          it "clears the dirty tracking" do
-            agent.changes.should be_empty
+          it "keeps changes for next callback" do
+            agent.changes.should_not be_empty
           end
         end
 
@@ -948,8 +948,8 @@ describe Mongoid::Persistence do
             touched.should be_true
           end
 
-          it "clears the dirty tracking" do
-            agent.changes.should be_empty
+          it "keeps changes for next callback" do
+            agent.changes.should_not be_empty
           end
         end
       end
@@ -980,6 +980,27 @@ describe Mongoid::Persistence do
           it "returns false" do
             touched.should be_false
           end
+        end
+      end
+
+      context "when creating the child" do
+
+        let(:time) do
+          Time.utc(2012, 4, 3, 12)
+        end
+
+        let(:jar) do
+          Jar.new(_id: 1, updated_at: time).tap do |jar|
+            jar.save!
+          end
+        end
+
+        let!(:cookie) do
+          jar.cookies.create!(updated_at: time)
+        end
+
+        it "does not touch the parent" do
+          jar.updated_at.should eq(time)
         end
       end
     end

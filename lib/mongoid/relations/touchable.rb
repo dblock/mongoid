@@ -4,11 +4,6 @@ module Mongoid
     module Touchable
       extend ActiveSupport::Concern
 
-      included do
-        class_attribute :touchables
-        self.touchables = []
-      end
-
       module ClassMethods
 
         # Add the metadata to the touchable relations if the touch option was
@@ -23,12 +18,13 @@ module Mongoid
         #
         # @since 3.0.0
         def touchable(metadata)
-          name = metadata.name
-          touchables.push(name) if metadata.touchable?
-          method_name = define_relation_touch_method(name)
-          after_create method_name
-          after_destroy method_name
-          after_touch method_name
+          if metadata.touchable?
+            name = metadata.name
+            method_name = define_relation_touch_method(name)
+            after_create method_name
+            after_destroy method_name
+            after_touch method_name
+          end
           self
         end
 

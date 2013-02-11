@@ -7,6 +7,25 @@ For instructions on upgrading to newer versions, visit
 
 ### New Features
 
+* The minimum MongoDB requirement is now raised to 2.2, since we now
+  depend on the aggregation framework.
+
+* The minimum Active Model and Active Support dependencies have been
+  raised to 3.2.
+
+* \#2804 $geoNear support has now been added to criteria.
+
+        Bar.where(:likes.gt => 1000).geo_near([ 52, 13 ])
+        Bar.geo_near([ 52, 13 ]).max_distance(0.5).spherical
+
+* \#2799 Criteria#map can now accept a symbol of a field name as well as
+  a block to perform a more optimized `map`. (Gosha Arinich)
+
+        Band.where(:likes.gt => 1000).map(:name)
+
+* \#2798 Aggregations (`sum`, `min`, `max`, `avg`) now use the
+  aggregation framework instead of map/reduce. (Gosha Arinich)
+
 * \#2776 MongoDB 2.4.x new index types are now supported: "2dsphere",
   "text", and "hashed". (Irakli Janiashvili)
 
@@ -232,6 +251,18 @@ For instructions on upgrading to newer versions, visit
 ## 3.0.22
 
 ### Resolved Issues
+
+* \#2796 Don't cascade changes on has_many relations when assigning with
+  a delete.
+
+* \#2795 Fix precision on time conversions. (Tom de Bruijn)
+
+* \#2794 Don't autobuild when reading a relation for validation.
+
+* \#2790 `becomes` now copies embedded documents even if they were protected
+  by mass assignment.
+
+* \#2787 Allow `becomes` to replace the document in the identity map.
 
 * \#2786 Fixed regressed cascading callbacks on destroy not firing.
 
