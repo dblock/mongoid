@@ -16,7 +16,7 @@ end
 describe Mongoid do
 
   it "2816" do
-    Test_2816::Princess.create!
+    expect { Test_2816::Princess.create! }.to raise_error Mongoid::Errors::Validations, /Color can't be blank/
   end
 
 end
