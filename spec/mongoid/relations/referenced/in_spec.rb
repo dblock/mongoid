@@ -2,6 +2,10 @@ require "spec_helper"
 
 describe Mongoid::Relations::Referenced::In do
 
+  before(:all) do
+    Person.reset_callbacks(:validate)
+  end
+
   let(:person) do
     Person.create
   end
@@ -1146,7 +1150,16 @@ describe Mongoid::Relations::Referenced::In do
 
     it "returns the valid options" do
       described_class.valid_options.should eq(
-        [ :autobuild, :autosave, :dependent, :foreign_key, :index, :polymorphic, :touch ]
+        [
+          :autobuild,
+          :autosave,
+          :dependent,
+          :foreign_key,
+          :index,
+          :polymorphic,
+          :primary_key,
+          :touch
+        ]
       )
     end
   end

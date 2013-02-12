@@ -13,6 +13,20 @@ For instructions on upgrading to newer versions, visit
 * The minimum Active Model and Active Support dependencies have been
   raised to 3.2.
 
+* \#2809 Relations can now specify a primary key to use instead of the
+  id on foreign keys.
+
+        class Person
+          include Mongoid::Document
+          field :username, type: String
+          has_many :cats, primary_key: "username"
+        end
+
+        class Cat
+          include Mongoid::Document
+          belongs_to :person, primary_key: "username"
+        end
+
 * \#2804 $geoNear support has now been added to criteria.
 
         Bar.where(:likes.gt => 1000).geo_near([ 52, 13 ])
@@ -121,6 +135,9 @@ For instructions on upgrading to newer versions, visit
           include Mongoid::Document
           include Mongoid::Timestamps::Updated::Short # For u_at only.
         end
+
+* \#2465 Documents now have an `attribute_before_type_cast` for proper
+  handling of validations. (Gerad Suyderhoud)
 
 * \#2443 `expire_after_seconds` is now a valid index option.
 
@@ -251,6 +268,9 @@ For instructions on upgrading to newer versions, visit
 ## 3.0.22
 
 ### Resolved Issues
+
+* \#2812 Fixed criteria on many to many relations when the base document is
+  destroyed and the foreign key has not yet been lazy evaluated.
 
 * \#2796 Don't cascade changes on has_many relations when assigning with
   a delete.

@@ -1696,6 +1696,25 @@ describe Mongoid::Relations::Referenced::ManyToMany do
       Person.create
     end
 
+    context "when nothing exists on the relation" do
+
+      context "when the document is destroyed" do
+
+        before do
+          Meat.create!
+        end
+
+        let!(:sandwich) do
+          Sandwich.create!
+        end
+
+        it "returns zero" do
+          sandwich.destroy
+          sandwich.meats.count.should eq(0)
+        end
+      end
+    end
+
     context "when documents have been persisted" do
 
       let!(:preference) do
@@ -2985,7 +3004,18 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
     it "returns the valid options" do
       described_class.valid_options.should eq(
-        [ :autosave, :dependent, :foreign_key, :index, :order, :before_add, :after_add, :before_remove, :after_remove ]
+        [
+          :after_add,
+          :after_remove,
+          :autosave,
+          :before_add,
+          :before_remove,
+          :dependent,
+          :foreign_key,
+          :index,
+          :order,
+          :primary_key
+        ]
       )
     end
   end
