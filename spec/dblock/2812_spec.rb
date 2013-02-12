@@ -12,9 +12,9 @@ module Test_2812
   end
 end
 
-describe "2812" do
+describe Mongoid do
 
-  it "issue" do
+  it "2812" do
     # create a meats collection, without it, no error
     Test_2812::Meat.create!
 
