@@ -1,11 +1,32 @@
 # encoding: utf-8
+require "mongoid/positional"
+require "mongoid/evolvable"
+require "mongoid/extensions"
+require "mongoid/errors"
+require "mongoid/threaded"
+require "mongoid/relations"
+require "mongoid/atomic"
+require "mongoid/attributes"
+require "mongoid/contextual"
+require "mongoid/copyable"
+require "mongoid/equality"
+require "mongoid/criteria"
+require "mongoid/factory"
+require "mongoid/fields"
+require "mongoid/identity_map"
+require "mongoid/matchers"
+require "mongoid/nested_attributes"
+require "mongoid/state"
+require "mongoid/timestamps"
+require "mongoid/composable"
+
 module Mongoid
 
   # This is the base module for all domain objects that need to be persisted to
   # the database as documents.
   module Document
     extend ActiveSupport::Concern
-    include Mongoid::Components
+    include Composable
 
     attr_accessor :criteria_instance_id
     attr_reader :new_record
@@ -87,7 +108,6 @@ module Mongoid
       _building do
         @new_record = true
         @attributes ||= {}
-        @attributes_before_type_cast ||= {}
         options ||= {}
         apply_pre_processed_defaults
         process_attributes(attrs) do
@@ -189,6 +209,17 @@ module Mongoid
       became.instance_variable_set(:@destroyed, destroyed?)
       became.changed_attributes["_type"] = self.class.to_s
       became._type = klass.to_s
+
+      # mark embedded docs as persisted
+      embedded_relations.each_pair do |name, meta|
+        without_autobuild do
+          relation = became.__send__(name)
+          Array.wrap(relation).each do |r|
+            r.instance_variable_set(:@new_record, new_record?)
+          end
+        end
+      end
+
       IdentityMap.set(became) unless became.new_record?
       became
     end
@@ -283,7 +314,6 @@ module Mongoid
         doc = allocate
         doc.criteria_instance_id = criteria_instance_id
         doc.instance_variable_set(:@attributes, attributes)
-        doc.instance_variable_set(:@attributes_before_type_cast, {})
         doc.apply_defaults
         IdentityMap.set(doc)
         yield(doc) if block_given?

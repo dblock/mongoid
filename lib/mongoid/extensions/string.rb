@@ -81,7 +81,7 @@ module Mongoid
       #
       # @since 3.0.0
       def numeric?
-        true if Float(self) rescue false
+        true if Float(self) rescue (self == "NaN")
       end
 
       # Get the string as a getter string.
@@ -94,18 +94,6 @@ module Mongoid
       # @since 1.0.0
       def reader
         delete("=").sub(/\_before\_type\_cast$/, '')
-      end
-
-      # Convert the string to an array with the string in it.
-      #
-      # @example Convert the string to an array.
-      #   "Testing".to_a
-      #
-      # @return [ Array ] An array with only the string in it.
-      #
-      # @since 1.0.0
-      def to_a
-        [ self ]
       end
 
       # Is this string a writer?

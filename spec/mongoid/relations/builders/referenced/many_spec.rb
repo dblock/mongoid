@@ -9,7 +9,7 @@ describe Mongoid::Relations::Builders::Referenced::Many do
   describe "#build" do
 
     let(:criteria) do
-      stub(klass: Post, selector: { "person_id" => "" })
+      stub(klass: Post, selector: { "person_id" => "" }, selector_with_type_selection: { "person_id" => "" })
     end
 
     let(:metadata) do
@@ -18,7 +18,7 @@ describe Mongoid::Relations::Builders::Referenced::Many do
         name: :posts,
         foreign_key: "person_id",
         inverse_klass: Person,
-        criteria: criteria
+        criteria: criteria,
       )
     end
 
@@ -45,7 +45,7 @@ describe Mongoid::Relations::Builders::Referenced::Many do
       end
 
       it "sets the documents" do
-        documents.should eq(criteria)
+        expect(documents).to eq(criteria)
       end
     end
 
@@ -79,7 +79,7 @@ describe Mongoid::Relations::Builders::Referenced::Many do
       end
 
       it "ordered by specified filed" do
-        documents.should eq(criteria)
+        expect(documents).to eq(criteria)
       end
     end
 
@@ -103,7 +103,7 @@ describe Mongoid::Relations::Builders::Referenced::Many do
       end
 
       it "returns the object" do
-        documents.should eq(object)
+        expect(documents).to eq(object)
       end
     end
   end
@@ -119,15 +119,15 @@ describe Mongoid::Relations::Builders::Referenced::Many do
       context "when the ids are empty" do
 
         it "returns an empty array" do
-          person.posts.should be_empty
+          expect(person.posts).to be_empty
         end
 
         context "during initialization" do
 
           it "returns an empty array" do
             Person.new do |p|
-              p.posts.should be_empty
-              p.posts.metadata.should_not be_nil
+              expect(p.posts).to be_empty
+              expect(p.posts.metadata).to_not be_nil
             end
           end
         end

@@ -15,18 +15,18 @@ describe Mongoid::Sessions do
       end
 
       it "remove the options from the current thread" do
-        Band.persistence_options.should be_nil
+        expect(Band.persistence_options).to be_nil
       end
 
       it "returns true" do
-        cleared.should be_true
+        expect(cleared).to be_true
       end
     end
 
     context "when options do not exist on the current thread" do
 
       it "returns true" do
-        Band.clear_persistence_options.should be_true
+        expect(Band.clear_persistence_options).to be_true
       end
     end
   end
@@ -42,21 +42,21 @@ describe Mongoid::Sessions do
         end
 
         it "returns the collection for the model" do
-          band.collection.should be_a(Moped::Collection)
+          expect(band.collection).to be_a(Moped::Collection)
         end
 
         it "sets the correct collection name" do
-          band.collection.name.to_s.should eq("artists")
+          expect(band.collection.name.to_s).to eq("artists")
         end
 
         context "when accessing from the class level" do
 
           it "returns the collection for the model" do
-            Band.collection.should be_a(Moped::Collection)
+            expect(Band.collection).to be_a(Moped::Collection)
           end
 
           it "sets the correct collection name" do
-            Band.collection.name.to_s.should eq("artists")
+            expect(Band.collection.name.to_s).to eq("artists")
           end
         end
 
@@ -70,11 +70,11 @@ describe Mongoid::Sessions do
 
             it "clears the options from the current thread" do
               Band.collection
-              Band.persistence_options.should be_nil
+              expect(Band.persistence_options).to be_nil
             end
 
             it "returns the collection" do
-              Band.collection.should be_a(Moped::Collection)
+              expect(Band.collection).to be_a(Moped::Collection)
             end
           end
         end
@@ -82,7 +82,20 @@ describe Mongoid::Sessions do
 
       after do
         Band.storage_options = nil
-        Band.send(:remove_instance_variable, :@collection_name)
+      end
+
+      context "when called multiple times with different options" do
+        before do
+          Band.store_in collection: "artists"
+          Band.store_in session: "another"
+        end
+
+        it "should merge the options together" do
+          expect(Band.storage_options).to eq({
+            collection: "artists",
+            session: "another"
+          })
+        end
       end
 
       context "when overriding with a proc" do
@@ -115,30 +128,26 @@ describe Mongoid::Sessions do
 
     context "when not overriding the default" do
 
-      after do
-        Band.send(:remove_instance_variable, :@collection_name)
-      end
-
       let(:band) do
         Band.new
       end
 
       it "returns the collection for the model" do
-        band.collection.should be_a(Moped::Collection)
+        expect(band.collection).to be_a(Moped::Collection)
       end
 
       it "sets the correct collection name" do
-        band.collection.name.to_s.should eq("bands")
+        expect(band.collection.name.to_s).to eq("bands")
       end
 
       context "when accessing from the class level" do
 
         it "returns the collection for the model" do
-          Band.collection.should be_a(Moped::Collection)
+          expect(Band.collection).to be_a(Moped::Collection)
         end
 
         it "sets the correct collection name" do
-          Band.collection.name.to_s.should eq("bands")
+          expect(Band.collection.name.to_s).to eq("bands")
         end
       end
     end
@@ -157,21 +166,20 @@ describe Mongoid::Sessions do
         context "when accessing from the instance" do
 
           it "returns the overridden value" do
-            band.collection_name.should eq(:artists)
+            expect(band.collection_name).to eq(:artists)
           end
         end
 
         context "when accessing from the class level" do
 
           it "returns the overridden value" do
-            Band.collection_name.should eq(:artists)
+            expect(Band.collection_name).to eq(:artists)
           end
         end
       end
 
       after do
         Band.storage_options = nil
-        Band.send(:remove_instance_variable, :@collection_name)
       end
 
       context "when overriding with a proc" do
@@ -209,13 +217,13 @@ describe Mongoid::Sessions do
       end
 
       it "returns the pluralized model name" do
-        band.collection_name.should eq(:bands)
+        expect(band.collection_name).to eq(:bands)
       end
 
       context "when accessing from the class level" do
 
         it "returns the pluralized model name" do
-          Band.collection_name.should eq(:bands)
+          expect(Band.collection_name).to eq(:bands)
         end
       end
     end
@@ -227,13 +235,13 @@ describe Mongoid::Sessions do
       end
 
       it "returns the root class pluralized model name" do
-        firefox.collection_name.should eq(:canvases)
+        expect(firefox.collection_name).to eq(:canvases)
       end
 
       context "when accessing from the class level" do
 
         it "returns the root class pluralized model name" do
-          Firefox.collection_name.should eq(:canvases)
+          expect(Firefox.collection_name).to eq(:canvases)
         end
       end
     end
@@ -245,7 +253,7 @@ describe Mongoid::Sessions do
       File.join(File.dirname(__FILE__), "..", "config", "mongoid.yml")
     end
 
-    before(:all) do
+    before do
       described_class.clear
       Mongoid.load!(file, :test)
       Mongoid.sessions[:default][:database] = database_id
@@ -281,7 +289,7 @@ describe Mongoid::Sessions do
       end
 
       it "returns the default session" do
-        mongo_session.options[:database].should eq(database_id)
+        expect(mongo_session.options[:database]).to eq(database_id)
       end
     end
 
@@ -298,7 +306,7 @@ describe Mongoid::Sessions do
         end
 
         it "returns the default session" do
-          single_session.options[:database].should eq(ENV["MONGOHQ_SINGLE_NAME"])
+          expect(single_session.options[:database]).to eq(ENV["MONGOHQ_SINGLE_NAME"])
         end
       end
 
@@ -343,7 +351,7 @@ describe Mongoid::Sessions do
       shared_examples_for "an overridden session to a mongohq replica set" do
 
         it "returns the default session" do
-          replica_session.options[:database].should eq(ENV["MONGOHQ_REPL_NAME"])
+          expect(replica_session.options[:database]).to eq(ENV["MONGOHQ_REPL_NAME"])
         end
       end
 
@@ -390,7 +398,7 @@ describe Mongoid::Sessions do
       end
 
       it "returns the default session" do
-        repl_session.options[:database].should eq(ENV["MONGOHQ_REPL_NAME"])
+        expect(repl_session.options[:database]).to eq(ENV["MONGOHQ_REPL_NAME"])
       end
     end
 
@@ -418,7 +426,7 @@ describe Mongoid::Sessions do
       File.join(File.dirname(__FILE__), "..", "config", "mongoid.yml")
     end
 
-    before(:all) do
+    before do
       described_class.clear
       Mongoid.load!(file, :test)
       Mongoid.sessions[:default][:database] = database_id
@@ -446,7 +454,7 @@ describe Mongoid::Sessions do
       end
 
       it "returns the default session" do
-        mongo_session.options[:database].should eq(database_id)
+        expect(mongo_session.options[:database]).to eq(database_id)
       end
     end
 
@@ -461,7 +469,7 @@ describe Mongoid::Sessions do
       end
 
       it "returns the default session" do
-        session.options[:database].should eq(ENV["MONGOHQ_SINGLE_NAME"])
+        expect(session.options[:database]).to eq(ENV["MONGOHQ_SINGLE_NAME"])
       end
     end
 
@@ -476,7 +484,7 @@ describe Mongoid::Sessions do
       end
 
       it "returns the default session" do
-        repl_session.options[:database].should eq(ENV["MONGOHQ_REPL_NAME"])
+        expect(repl_session.options[:database]).to eq(ENV["MONGOHQ_REPL_NAME"])
       end
     end
 
@@ -507,14 +515,14 @@ describe Mongoid::Sessions do
       end
 
       it "returns the options" do
-        Band.persistence_options.should eq(safe: { w: 2 })
+        expect(Band.persistence_options).to eq(safe: { w: 2 })
       end
     end
 
     context "when there are no options on the current thread" do
 
       it "returns nil" do
-        Band.persistence_options.should be_nil
+        expect(Band.persistence_options).to be_nil
       end
     end
   end
@@ -568,11 +576,11 @@ describe Mongoid::Sessions do
         end
 
         it "persists to the specified database" do
-          from_db.should eq(band)
+          expect(from_db).to eq(band)
         end
 
         it "persists the correct number of documents" do
-          Band.with(database: "mongoid_test_alt").count.should eq(1)
+          expect(Band.with(database: "mongoid_test_alt").count).to eq(1)
         end
       end
 
@@ -618,7 +626,7 @@ describe Mongoid::Sessions do
           end
 
           it "executes the map/reduce on the correct database" do
-            results.first["value"].should eq({ "likes" => 200 })
+            expect(results.first["value"]).to eq({ "likes" => 200 })
           end
         end
 
@@ -630,7 +638,7 @@ describe Mongoid::Sessions do
           end
 
           it "executes the map/reduce on the correct database" do
-            results.first["value"].should eq({ "likes" => 200 })
+            expect(results.first["value"]).to eq({ "likes" => 200 })
           end
         end
       end
@@ -655,11 +663,11 @@ describe Mongoid::Sessions do
         end
 
         it "persists to the specified database" do
-          from_db.should eq(band)
+          expect(from_db).to eq(band)
         end
 
         it "persists the correct number of documents" do
-          Band.with(collection: "artists").count.should eq(1)
+          expect(Band.with(collection: "artists").count).to eq(1)
         end
       end
 
@@ -703,7 +711,7 @@ describe Mongoid::Sessions do
         end
 
         it "executes the map/reduce on the correct collection" do
-          results.first["value"].should eq({ "likes" => 200 })
+          expect(results.first["value"]).to eq({ "likes" => 200 })
         end
       end
     end
@@ -716,7 +724,7 @@ describe Mongoid::Sessions do
           File.join(File.dirname(__FILE__), "..", "config", "mongoid.yml")
         end
 
-        before(:all) do
+        before do
           described_class.clear
           Mongoid.load!(file, :test)
         end
@@ -738,7 +746,7 @@ describe Mongoid::Sessions do
           end
 
           it "persists to the specified database" do
-            from_db.should eq(band)
+            expect(from_db).to eq(band)
           end
         end
 
@@ -759,7 +767,7 @@ describe Mongoid::Sessions do
           end
 
           it "persists to the specified database" do
-            from_db.should eq(band)
+            expect(from_db).to eq(band)
           end
         end
 
@@ -780,7 +788,7 @@ describe Mongoid::Sessions do
           end
 
           it "persists to the specified database" do
-            from_db.should eq(band)
+            expect(from_db).to eq(band)
           end
         end
       end
@@ -791,7 +799,7 @@ describe Mongoid::Sessions do
           File.join(File.dirname(__FILE__), "..", "config", "mongoid.yml")
         end
 
-        before(:all) do
+        before do
           described_class.clear
           Mongoid.load!(file, :test)
         end
@@ -843,7 +851,7 @@ describe Mongoid::Sessions do
         end
 
         it "executes the map/reduce on the correct session" do
-          results.first["value"].should eq({ "likes" => 200 })
+          expect(results.first["value"]).to eq({ "likes" => 200 })
         end
       end
     end
@@ -859,7 +867,7 @@ describe Mongoid::Sessions do
         context "when no error occurs" do
 
           it "inserts the document" do
-            Person.count.should eq(1)
+            expect(Person.count).to eq(1)
           end
         end
 
@@ -879,7 +887,7 @@ describe Mongoid::Sessions do
         context "when using safe: false" do
 
           it "ignores mongodb error" do
-            Person.with(safe: false).create(ssn: "432-97-1111").should be_true
+            expect(Person.with(safe: false).create(ssn: "432-97-1111")).to be_true
           end
         end
       end
@@ -893,7 +901,7 @@ describe Mongoid::Sessions do
         context "when no error occurs" do
 
           it "inserts the document" do
-            Person.count.should eq(1)
+            expect(Person.count).to eq(1)
           end
         end
 
@@ -1005,7 +1013,7 @@ describe Mongoid::Sessions do
       end
 
       it "persists the document to the correct database" do
-        Band.find(band.id).should eq(band)
+        expect(Band.find(band.id)).to eq(band)
       end
     end
   end
@@ -1037,7 +1045,7 @@ describe Mongoid::Sessions do
 
       it "persists to the overridden database" do
         Band.mongo_session.with(database: :mongoid_optional) do |sess|
-          sess[:bands].find(name: "Tool").should_not be_nil
+          expect(sess[:bands].find(name: "Tool")).to_not be_nil
         end
       end
     end
@@ -1067,7 +1075,7 @@ describe Mongoid::Sessions do
       end
 
       it "has some database name on session" do
-        Band.mongo_session.options[:database].should eq(database_name)
+        expect(Band.mongo_session.options[:database]).to eq(database_name)
       end
     end
 
@@ -1096,7 +1104,7 @@ describe Mongoid::Sessions do
       end
 
       it "persists to the overridden session" do
-        persisted.should eq(band)
+        expect(persisted).to eq(band)
       end
     end
   end

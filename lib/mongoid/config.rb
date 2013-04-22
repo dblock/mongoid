@@ -24,6 +24,7 @@ module Mongoid
     option :preload_models, default: false
     option :raise_not_found_error, default: true
     option :scope_overwrite_exception, default: false
+    option :duplicate_fields_exception, default: false
     option :use_activesupport_time_zone, default: true
     option :use_utc, default: false
 
@@ -68,7 +69,7 @@ module Mongoid
     #
     # @return [ Array<String> ] An array of bad field names.
     def destructive_fields
-      Components.prohibited_methods
+      Composable.prohibited_methods
     end
 
     # Load the settings from a compliant mongoid.yml file. This can be used for
@@ -83,7 +84,11 @@ module Mongoid
     # @since 2.0.1
     def load!(path, environment = nil)
       settings = Environment.load_yaml(path, environment)
-      load_configuration(settings) if settings.present?
+      if settings.present?
+        Sessions.disconnect
+        Sessions.clear
+        load_configuration(settings)
+      end
       settings
     end
 

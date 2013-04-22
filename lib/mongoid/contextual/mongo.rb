@@ -44,15 +44,19 @@ module Mongoid
       #     doc.likes > 1
       #   end
       #
-      # @param [ Document ] document A document ot match.
+      # @param [ Document ] document A document to match or true if wanting
+      #   skip and limit to be factored into the count.
       #
       # @return [ Integer ] The number of matches.
       #
       # @since 3.0.0
-      def count(document = nil, &block)
+      def count(document = false, &block)
         return super(&block) if block_given?
-        return (cached? ? @count ||= query.count : query.count) unless document
-        collection.find(criteria.and(_id: document.id).selector).count
+        if document.is_a?(Document)
+          return collection.find(criteria.and(_id: document.id).selector).count
+        end
+        return query.count(document) if document
+        cached? ? @count ||= query.count : query.count
       end
 
       # Delete all documents in the database that match the selector.
@@ -332,8 +336,8 @@ module Mongoid
       #
       # @since 3.1.0
       def pluck(field)
-        normalized = field.to_s
-        query.select(normalized => 1).map{ |doc| doc[normalized] }.compact
+        normalized = klass.database_field_name(field)
+        query.dup.select(normalized => 1).map{ |doc| doc[normalized] }.compact
       end
 
       # Skips the provided number of documents.
@@ -465,6 +469,9 @@ module Mongoid
         apply_fields
         [ :hint, :limit, :skip, :sort, :batch_size, :max_scan ].each do |name|
           apply_option(name)
+        end
+        if criteria.options[:timeout] == false
+          query.no_timeout
         end
       end
 

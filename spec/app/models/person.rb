@@ -26,10 +26,12 @@ class Person
   field :bson_id, type: Moped::BSON::ObjectId
   field :pattern, type: Regexp
   field :override_me, type: Integer
+  field :at, as: :aliased_timestamp, type: Time
   field :t, as: :test, type: String
   field :i, as: :inte, type: Integer
   field :a, as: :array, type: Array
   field :desc, localize: true
+  field :test_array, type: Array
 
   index age: 1
   index addresses: 1

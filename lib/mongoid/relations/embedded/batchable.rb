@@ -6,7 +6,7 @@ module Mongoid
       # Contains behaviour for executing operations in batch on embedded
       # documents.
       module Batchable
-        include Mongoid::Atomic::Positionable
+        include Positional
 
         # Insert new documents as a batch push ($pushAll). This ensures that
         # all callbacks are run at the appropriate time and only 1 request is
@@ -56,7 +56,7 @@ module Mongoid
         # @since 3.0.0
         def batch_remove(docs, method = :delete)
           removals = pre_process_batch_remove(docs, method)
-          if !docs.empty? && !_assigning?
+          if !docs.empty?
             collection.find(selector).update(
               positionally(selector, "$pullAll" => { path => removals })
             )

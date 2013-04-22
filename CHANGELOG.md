@@ -9,6 +9,69 @@ For instructions on upgrading to newer versions, visit
 
 * Mongoid now requires Active Model 4 or higher.
 
+* `Document#set` now accepts multiple attributes in the form of a hash,
+  instead of the previous `(field, value)` args. Field aliases and typecasting
+  are also now supported in this operation.
+
+        document.set(name: "Photek", likes: 10000)
+
+* `Document#rename` now accepts multiple attributes in the form of a hash,
+  instead of the previous `(field, value)` args. Field aliases are supported.
+
+        document.rename(first_name: "fn", last_name: "ln")
+
+* `Document#inc` now accepts multiple attributes in the form of a hash, instead
+  of previously only being able to increment one value at a time. Aliases and
+  serialization is supported.
+
+        document.inc(score: 10, place: -1, lives: -10)
+
+* `Document#pop` now accepts multiple attributes in the form of a hash, instead
+  of previously only being able to pop one value at a time. Aliases and
+  serialization is supported.
+
+        document.pop(names: 1, aliases: -1)
+
+* `Document#bit` now accepts multiple attributes in the form of a hash, instead
+  of previously only being able to apply one set of operations at a time.
+  Aliases and serialization are supported.
+
+        document.bit(age: { and: 13 }, score: { or: 13 })
+
+* `Document#pull` now accepts multiple attributes in the form of a hash, instead
+  of previously only being able to pull one value at a time. Aliases and
+  serialization is supported.
+
+        document.pull(names: "James", aliases: "007")
+
+* `Document#pull_all` now accepts multiple attributes in the form of a hash,
+  instead of previously only being able to pull one value at a time. Aliases and
+  serialization is supported.
+
+        document.pull_all(names: ["James", "Bond"], aliases: ["007"])
+
+* `Document#push_all` has been removed since it was deprecated in MongoDB 2.4.
+  Use `Document.push` instead.
+
+* `Document#push` now accepts multiple attributes in the form of a hash, and
+  can handle the pushing of single values or multiple values to the field via
+  $push with $each. Aliases and serialization is supported.
+
+        document.push(names: "James", aliases: [ "007", "Jim" ])
+
+* `Document#add_to_set` now accepts multiple attributes in the form of a hash,
+  and now aliases and serialization are supported.
+
+        document.add_to_set(names: "James", aliases: "007")
+
+* Criteria atomic operations API is now changed to match the changes in the
+  single document atomic API, for example:
+
+        Band.where(name: "Depeche Mode").inc(likes: 10, followers: 20)
+
+* \#2898 Dirty attribute methods now properly handle field aliases.
+  (Niels Ganser)
+
 * \#2659 `Mongoid::Railtie` now properly uses only one initializer and
   the name has changed to `mongoid.load-config`.
 
@@ -17,11 +80,131 @@ For instructions on upgrading to newer versions, visit
 * \#2648 `Boolean` becomes `Mongoid::Boolean` to avoid polluting the global
   namespace with a commonly used class by other libraries.
 
+* \#2603 Return values from setters are now always the set value, regardless
+  of calling the setter or using send.
+
 * \#2433 `Mongoid::Paranoia` has been removed.
 
 * \#2432 `Mongoid::Versioning` has been removed.
 
 * \#2200 Mass assignment security now mirrors Rails 4's behavior.
+
+* `delete_all` and `destroy_all` no longer take a `:conditions` hash but
+  just the raw attributes.
+
+* \#1344 Atomic updates can now be executed in an `atomically` block, which will
+  delay any atomic updates on the document the block was called on until the
+  block is complete.
+
+    Update calls can be executed as normal in the block:
+
+        document.atomically do
+          document.inc(likes: 10)
+          document.bit(members: { and: 10 })
+          document.set(name: "Photek")
+        end
+
+    The document is also yielded to the block:
+
+        document.atomically do |doc|
+          doc.inc(likes: 10)
+          doc.bit(members: { and: 10 })
+          doc.set(name: "Photek")
+        end
+
+    The atomic commands are have a fluid interface:
+
+        document.atomically do |doc|
+          doc.inc(likes: 10).bit(members: { and: 10 }).set(name: "Photek")
+        end
+
+    If the fluid interface is leveraged without the `atomically` block, the
+    operations will persist in individual calls. For example, the following
+    would hit the database 3 times without the block provided:
+
+        doc.inc(likes: 10).bit(members: { and: 10 }).set(name: "Photek")
+
+    The block is only good for 1 document at a time, so embedded and root
+    document updates cannot be mixed at this time.
+
+
+### New Features
+
+* \#2938 A configuration option `duplicate_fields_exception` has been added that
+  when set to `true` will raise an exception when defining a field that will
+  override an existing method. (Arthur Neves)
+
+* \#2855 Multiple extensions can now be supplied to relations. (Daniel Libanori)
+
+### Resolved Issues
+
+* \#2903 Removed unused string `to_a` extension.
+
+## 3.1.4
+
+### Resolved Issues
+
+* \#2979 `pluck` no longer modifies the context in place. (Brian Goff)
+
+* \#2944 Fixed uniqueness validation for localized fields when case insensitive
+  is true. (Vladimir Zhukov)
+
+## 3.1.3
+
+### Resolved Issues
+
+* Dont duplicate embedded documents when saving after calling becomes method.
+  (Arthur Neves)
+
+* \#2961 Reloading a mongoid.yml configuration now properly clears previously
+  configured sessions.
+
+* \#2937 Counts can now take a `true` argument to factor in skip and limit.
+  (Arthur Neves)
+
+* \#2921 Don't use type in identity map selection if inheritance is not
+  in play. (Arthur Neves)
+
+* \#2893 Removed memoization of collection name and database name so lambdas
+  with `store_in` work properly when changing.
+
+* \#2911 The `_destroy` attribute on 1-n relations when processing nested
+  attributes can now be a string or symbol when passed an array.
+
+* \#2886 Fixed namespacing issue with Rails generators.
+
+* \#2885 Fixed touch for aliased fields. (Niels Ganser)
+
+* \#2883 Allow cyclic relations to not raise mixed relation errors.
+
+* \#2867 `pluck` now properly handles aliased fields.
+
+* \#2862 Autosaving no longer performs extra unnecessary queries.
+  (Arthur Neves)
+
+## 3.1.2
+
+### Resolved Issues
+
+* \#2851 Fixed BigDecimal demongoization of NaN values. (nkem)
+
+* \#2848 Fixed `touch` to work when usinng short timestamps. (Arthur Neves)
+
+* \#2840 Fixed end-to-end `no_timeout` option handling.
+
+* \#2826 Dynamic fields are now properly mongoized.
+
+* \#2822 Marshal load of relations now properly reapplies extensions.
+
+## 3.1.1
+
+### Resolved Issues
+
+* \#2839 Validations fixed to use the type cast value with the exception
+  of the numericality validator. (Lailson Bandeira)
+
+* \#2838 `store_in` options now properly merge instead of override.
+  (Colin MacKenzie)
 
 ## 3.1.0
 
@@ -159,12 +342,14 @@ For instructions on upgrading to newer versions, visit
 * \#2465 Documents now have an `attribute_before_type_cast` for proper
   handling of validations. (Gerad Suyderhoud)
 
-* \#2443 `expire_after_seconds` is now a valid index option.
+* \#2443 `expire_after_seconds` is now a valid index option
+  (http://docs.mongodb.org/manual/core/indexes/#ttl-indexes,
+   http://docs.mongodb.org/manual/tutorial/expire-data/).
 
         class Event
           include Mongoid::Document
-          field :status, type: Integer
-          index({ status: 1 }, { expire_after_seconds: 3600 })
+          field :created_at, type: DateTime
+          index({ created_at: 1 }, { expire_after_seconds: 3600 })
         end
 
 * \#2373 Relations with the `touch: true` option will now be automatically
@@ -284,6 +469,31 @@ For instructions on upgrading to newer versions, visit
 
 * \#2664 In memory sorting of embedded documents now properly works when
   multiple fields are provided. (Neer Friedman)
+
+## 3.0.24
+
+### Resolved Issues
+
+* \#2879 `remove_attribute` on new documents no longer creates an unnecessary
+  $unset operation.
+
+## 3.0.23
+
+### Resolved Issues
+
+* \#2851 Fixed BigDecimal demongoization of NaN values. (nkem)
+
+* \#2841 Calling `delete_all` or `destroy_all` on an embeds many when in the
+  middle of a parent update will now properly execute the deletion.
+  (Arthur Neves)
+
+* \#2835 Fixed clearing of persistence options in uniqueness validator.
+
+* \#2826 Dynamic fields are now properly mongoized.
+
+* \#2822 Marshal load of relations now properly reapplies extensions.
+
+* \#2821 Autosaved relations should be duped in inheriting classes.
 
 ## 3.0.22
 

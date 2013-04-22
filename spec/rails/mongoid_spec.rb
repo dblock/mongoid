@@ -92,11 +92,11 @@ describe "Rails::Mongoid" do
     end
 
     it "removes indexes from klass" do
-      indexes.reject{ |doc| doc["name"] == "_id_" }.should be_empty
+      expect(indexes.reject{ |doc| doc["name"] == "_id_" }).to be_empty
     end
 
     it "leaves _id index untouched" do
-      indexes.select{ |doc| doc["name"] == "_id_" }.should_not be_empty
+      expect(indexes.select{ |doc| doc["name"] == "_id_" }).to_not be_empty
     end
   end
 
@@ -140,7 +140,7 @@ describe "Rails::Mongoid" do
       end
 
       it "returns nil" do
-        model.should be_nil
+        expect(model).to be_nil
       end
     end
 
@@ -151,7 +151,7 @@ describe "Rails::Mongoid" do
       end
 
       it "returns nil" do
-        model.should be_nil
+        expect(model).to be_nil
       end
     end
 
@@ -162,7 +162,7 @@ describe "Rails::Mongoid" do
       end
 
       it "returns nil" do
-        model.should be_nil
+        expect(model).to be_nil
       end
     end
 
@@ -177,7 +177,7 @@ describe "Rails::Mongoid" do
       end
 
       it "returns nil" do
-        model.should be_nil
+        expect(model).to be_nil
       end
     end
 
@@ -186,7 +186,7 @@ describe "Rails::Mongoid" do
       context "when file is from normal model" do
 
         it "returns klass" do
-          model.should eq(klass)
+          expect(model).to eq(klass)
         end
       end
 
@@ -202,7 +202,7 @@ describe "Rails::Mongoid" do
 
         it "logs the class without an error" do
           logger.should_receive(:info)
-          expect { model.should eq(klass) }.not_to raise_error(NameError)
+          expect { expect(model).to eq(klass) }.not_to raise_error(NameError)
         end
       end
     end
@@ -217,7 +217,7 @@ describe "Rails::Mongoid" do
 
         it "returns klass" do
           logger.should_receive(:info)
-          model.should eq(klass)
+          expect(model).to eq(klass)
         end
       end
 
@@ -232,7 +232,7 @@ describe "Rails::Mongoid" do
         end
 
         it "returns klass in module" do
-          model.should eq(klass)
+          expect(model).to eq(klass)
         end
       end
 
@@ -247,7 +247,7 @@ describe "Rails::Mongoid" do
         end
 
         it "returns klass in module" do
-          model.should eq(klass)
+          expect(model).to eq(klass)
         end
       end
     end
@@ -263,7 +263,7 @@ describe "Rails::Mongoid" do
       end
 
       it "requires the models by base name from the engine's app/models dir" do
-        model.should eq(klass)
+        expect(model).to eq(klass)
       end
     end
   end
@@ -293,10 +293,10 @@ describe "Rails::Mongoid" do
 
       before(:all) do
         Mongoid.preload_models = false
-        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
       end
 
       it "does not load any models" do
+        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
         Rails::Mongoid.should_receive(:load_model).never
         Rails::Mongoid.preload_models(app)
       end
@@ -371,10 +371,10 @@ describe "Rails::Mongoid" do
 
       before(:all) do
         Mongoid.preload_models = false
-        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
       end
 
       it "loads all models" do
+        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
         Rails::Mongoid.should_receive(:load_model).with("address")
         Rails::Mongoid.should_receive(:load_model).with("user")
         Rails::Mongoid.load_models(app)
@@ -392,10 +392,10 @@ describe "Rails::Mongoid" do
 
       before(:all) do
         Mongoid.preload_models = ["user"]
-        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
       end
 
       it "loads selected models only" do
+        Dir.stub(:glob).with("/rails/root/app/models/**/*.rb").and_return(files)
         Rails::Mongoid.should_receive(:load_model).with("user")
         Rails::Mongoid.should_receive(:load_model).with("address").never
         Rails::Mongoid.load_models(app)
