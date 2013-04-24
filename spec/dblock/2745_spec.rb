@@ -20,13 +20,13 @@ describe Mongoid do
     slice2 = Test_2745::Slice.new
     sandwich.slices << slice1
     sandwich.slices << slice2
-    sandwich.collection.where({ _id: sandwich.id }).update({ 
+    sandwich.collection.where({ _id: sandwich.id }).update({
       "$pull" => { "slices" => { _id: slice1.id } }
     })
     # sandwich.reload.slices.count.should == 1
     # Moped.logger = Logger.new(STDOUT)
     # Moped.logger.level = Logger::DEBUG
-    slice2.inc :position, 5
+    slice2.inc({ position: 5 })
     sandwich.reload.slices.count.should == 1
     sandwich.slices.first.position.should == 5
   end
