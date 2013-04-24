@@ -144,7 +144,15 @@ For instructions on upgrading to newer versions, visit
 
 ### Resolved Issues
 
+* \#2991 `Document.timeless` now properly scopes to the class and not thread.
+
 * \#2979 `pluck` no longer modifies the context in place. (Brian Goff)
+
+* \#2970 Fixed counter cache to properly use the name of the relation if available
+  then the inverse class name second if not.
+
+* \#2959 Nested attributes will now respect `autosave: false` if defined on the
+  relation.
 
 * \#2944 Fixed uniqueness validation for localized fields when case insensitive
   is true. (Vladimir Zhukov)
